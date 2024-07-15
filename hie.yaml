@@ -1,0 +1,7 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:psychic-eureka"
+
+    - path: "app/Main.hs"
+      component: "psychic-eureka:exe:psychic-eureka"
