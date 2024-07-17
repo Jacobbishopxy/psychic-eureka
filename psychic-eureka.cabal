@@ -22,8 +22,11 @@ library
   import:           warnings
   hs-source-dirs:   src
   exposed-modules:
+    Description
     Entities
+    EntityService
     Persist
+    SwaggerService
 
   build-depends:
     , aeson
@@ -56,6 +59,19 @@ executable psychic-eureka
 
   -- other-modules:
   -- other-extensions:
-  build-depends:    base ^>=4.19.1.0
+  build-depends:
+    , base            ^>=4.19.1.0
+    , psychic-eureka
+
   hs-source-dirs:   app
   default-language: Haskell2010
+
+test-suite test-rand-uuid
+  import:           warnings
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          RandUuid.hs
+  build-depends:
+    , base
+    , uuid

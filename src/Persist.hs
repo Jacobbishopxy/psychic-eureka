@@ -16,14 +16,13 @@ import Data.Aeson
   )
 import qualified Data.List as List
 import Data.Typeable (Proxy, TypeRep, Typeable, typeRep)
-import Data.UUID (UUID)
 import System.Directory
   ( doesFileExist,
     listDirectory,
     removeFile,
   )
 
-type Id = UUID
+type Id = String
 
 data PersistErr
   = EntityNotFound String
@@ -84,10 +83,10 @@ class (ToJSON a, FromJSON a, Typeable a) => Entity a where
 ----------------------------------------------------------------------------------------------------
 
 dataDir :: FilePath
-dataDir = ".data/"
+dataDir = "./data/"
 
 getPath :: TypeRep -> Id -> String
-getPath tr uid = dataDir <> show tr <> "." <> show uid <> ".json"
+getPath tr uid = dataDir <> show tr <> "." <> uid <> ".json"
 
 decodeFile :: (FromJSON a) => String -> IO a
 decodeFile jsonFileName = do

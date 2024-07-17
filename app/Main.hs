@@ -5,5 +5,7 @@
 
 module Main where
 
+import SwaggerService (up)
+
 main :: IO ()
-main = putStrLn "Hello, Haskell!"
+main = up
