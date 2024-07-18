@@ -47,7 +47,6 @@ library
     , swagger2
     , text
     , time
-    , uuid
     , wai
     , warp
 
@@ -70,6 +69,4 @@ test-suite test-rand-uuid
   type:             exitcode-stdio-1.0
   hs-source-dirs:   test
   main-is:          RandUuid.hs
-  build-depends:
-    , base
-    , uuid
+  build-depends:    base

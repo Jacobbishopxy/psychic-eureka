@@ -13,7 +13,6 @@ module SwaggerService where
 import Control.Lens
 import Data.Aeson
 import Data.Swagger
-import Data.UUID (UUID, fromString)
 import Entities
 import EntityService
 import GHC.IO.Handle (Handle)
@@ -24,12 +23,6 @@ import Servant.Swagger
 import Servant.Swagger.UI
 import System.Info (os)
 import System.Process (ProcessHandle, createProcess, shell)
-
-mockUid :: UUID
-mockUid =
-  case fromString "a2964361-6a47-4e15-bbc6-9cfc3a15b116" of
-    Just u -> u
-    Nothing -> error "wrong UUID string"
 
 instance ToSchema User where
   declareNamedSchema proxy =

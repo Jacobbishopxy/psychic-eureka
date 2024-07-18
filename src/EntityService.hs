@@ -58,7 +58,7 @@ userServer =
 
 getWelcome :: Handler String
 getWelcome = do
-  t <- liftIO $ getCurrentTime
+  t <- liftIO getCurrentTime
   return $ formatTime defaultTimeLocale "%FT%T%QZ" t
 
 getAllUsers :: Maybe Int -> Handler [User]
