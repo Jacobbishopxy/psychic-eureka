@@ -24,7 +24,7 @@ import Persist
 import Servant
 
 type UserAPI =
-  "welcome" :> Summary "welcome" :> Get '[JSON] String
+  "welcome" :> Summary "welcome" :> Get '[PlainText] String
     :<|> "users"
       :> Summary "retrieve all users"
       :> QueryParam' '[Optional, Desc Int "max number of records to load"] "maxRecords" Int
@@ -49,7 +49,7 @@ type UserAPI =
 
 userServer :: Server UserAPI
 userServer =
-  getWelcome
+  getWelcome -- GET /welcome
     :<|> getAllUsers -- GET /users
     :<|> getUser -- GET /users/{id}
     :<|> postUser -- POST /users
@@ -111,11 +111,6 @@ throwAsServerError ex =
     EntityNotFound msg -> err404 {errBody = pack msg}
     EntityAlreadyExists msg -> err409 {errBody = pack msg}
     InternalError msg -> err500 {errBody = pack msg}
-
--- instance ToServantErr PersistErr where
---   status (EntityNotFound msg)      = status404
---   status (EntityAlreadyExists msg) = status409
---   status (InternalError msg)       = status500
 
 userAPI :: Proxy UserAPI
 userAPI = Proxy

@@ -4,3 +4,6 @@
 
 gen-hie:
 	gen-hie > hie.yaml
+
+run:
+	cabal run psychic-eureka

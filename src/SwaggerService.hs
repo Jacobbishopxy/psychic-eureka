@@ -43,7 +43,7 @@ swaggerDoc =
     & info . title .~ "User API"
     & info . version .~ "0.1"
     & info . description ?~ "This is an API that tests swagger integration"
-    & info . license ?~ ("APACHE 2.0" & url ?~ URL "http://apache.org")
+    & info . license ?~ ("BSD 3.0" & url ?~ URL "https://opensource.org/licenses/BSD-3-Clause")
 
 type API = SwaggerSchemaUI "swagger-ui" "swagger.json" :<|> UserAPI
 
