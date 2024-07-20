@@ -57,9 +57,9 @@ userServer =
     :<|> deleteUser -- DELETE /users/{id}
 
 getWelcome :: Handler String
-getWelcome = do
-  t <- liftIO getCurrentTime
-  return $ formatTime defaultTimeLocale "%FT%T%QZ" t
+getWelcome =
+  liftIO getCurrentTime
+    >>= return . formatTime defaultTimeLocale "%FT%T%QZ"
 
 getAllUsers :: Maybe Int -> Handler [User]
 getAllUsers m = do
@@ -71,7 +71,7 @@ getAllUsers m = do
 
 getUser :: Id -> Handler User
 getUser i = do
-  liftIO $ putStrLn $ "GET /users/" <> i
+  liftIO $ putStrLn $ "GET /users/" <> show i
   eitherUserEx <- liftIO $ try (retrieve i)
   case eitherUserEx of
     Left ex -> throwAsServerError ex
@@ -87,7 +87,7 @@ postUser user = do
 
 putUser :: Id -> User -> Handler ()
 putUser i user = do
-  liftIO $ putStrLn $ "PUT /users/" <> i <> " " <> show user
+  liftIO $ putStrLn $ "PUT /users/" <> show i <> " " <> show user
   eitherVoidEx <- liftIO $ try (put i user)
   case eitherVoidEx of
     Left ex -> throwAsServerError ex
@@ -95,7 +95,7 @@ putUser i user = do
 
 deleteUser :: Id -> Handler ()
 deleteUser i = do
-  liftIO $ putStrLn $ "DELETE /users/" <> i
+  liftIO $ putStrLn $ "DELETE /users/" <> show i
   eitherVoidEx <- liftIO $ try (delete userType i)
   case eitherVoidEx of
     Left ex -> throwAsServerError ex

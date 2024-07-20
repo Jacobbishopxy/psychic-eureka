@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- file: Persist.hs
@@ -8,6 +10,7 @@
 module Persist where
 
 import Control.Exception (Exception, throw)
+import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Aeson
   ( FromJSON,
     ToJSON,
@@ -15,14 +18,28 @@ import Data.Aeson
     encodeFile,
   )
 import qualified Data.List as List
-import Data.Typeable (Proxy, TypeRep, Typeable, typeRep)
+import Data.Maybe (fromJust)
+import Data.Swagger
+import Data.Text (pack)
+import Data.Typeable (TypeRep, Typeable, typeRep)
+import Data.UUID (UUID, fromString, fromText)
+import GHC.Generics
+import Servant
 import System.Directory
   ( doesFileExist,
     listDirectory,
     removeFile,
   )
 
-type Id = String
+-- newtype id
+newtype Id = Id UUID
+  deriving (Show, Eq, Ord, Read, Generic, Typeable, ToJSON, FromJSON, ToParamSchema, ToSchema)
+
+instance FromHttpApiData Id where
+  parseUrlPiece txt =
+    case fromText txt of
+      Just uuid -> Right (Id uuid)
+      Nothing -> Left $ pack "Failed to parse Id"
 
 data PersistErr
   = EntityNotFound String
@@ -36,6 +53,12 @@ class (ToJSON a, FromJSON a, Typeable a) => Entity a where
   -- unique Id of the entity
   getId :: a -> Id
 
+  -- update createdAt field
+  mkCreatedAt :: a -> IO a
+
+  -- update modifiedAt field
+  mkModifiedAt :: a -> IO a
+
   -- persist a new entity
   post :: a -> IO ()
   post entity = do
@@ -43,7 +66,7 @@ class (ToJSON a, FromJSON a, Typeable a) => Entity a where
     fileExists <- doesFileExist jsonFileName
     if fileExists
       then throw $ EntityAlreadyExists $ "entity record already exists: " <> jsonFileName
-      else encodeFile jsonFileName entity
+      else liftIO $ mkCreatedAt entity >>= encodeFile jsonFileName
 
   -- update an entity
   put :: Id -> a -> IO ()
@@ -51,7 +74,7 @@ class (ToJSON a, FromJSON a, Typeable a) => Entity a where
     let jsonFileName = getPath (typeRep ([] :: [a])) uid
     fileExists <- doesFileExist jsonFileName
     if fileExists
-      then encodeFile jsonFileName entity
+      then liftIO $ mkModifiedAt entity >>= encodeFile jsonFileName
       else throw $ EntityNotFound $ "could not update as entity was not found: " <> jsonFileName
 
   -- delete an entity
@@ -86,7 +109,7 @@ dataDir :: FilePath
 dataDir = "./data/"
 
 getPath :: TypeRep -> Id -> String
-getPath tr uid = dataDir <> show tr <> "." <> uid <> ".json"
+getPath tr uid = dataDir <> show tr <> "." <> show uid <> ".json"
 
 decodeFile :: (FromJSON a) => String -> IO a
 decodeFile jsonFileName = do
@@ -99,3 +122,6 @@ decodeFile jsonFileName = do
           Right e -> return e
     else
       throw $ EntityNotFound $ "could not find: " <> jsonFileName
+
+mockId :: Id
+mockId = Id $ fromJust $ fromString "123e4567-e89b-12d3-a456-426614174000"

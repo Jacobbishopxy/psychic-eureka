@@ -18,6 +18,7 @@ import EntityService
 import GHC.IO.Handle (Handle)
 import Network.Wai
 import Network.Wai.Handler.Warp
+import Persist (mockId)
 import Servant
 import Servant.Swagger
 import Servant.Swagger.UI
@@ -28,7 +29,7 @@ instance ToSchema User where
   declareNamedSchema proxy =
     genericDeclareNamedSchema defaultSchemaOptions proxy
       & mapped . schema . description ?~ "This is a User API (tm)"
-      & mapped . schema . example ?~ toJSON (User "1" "Max Muster" "mm@muster.com")
+      & mapped . schema . example ?~ toJSON (User mockId "Max Muster" "mm@muster.com" Nothing Nothing)
 
 swaggerDoc :: Swagger
 swaggerDoc =
