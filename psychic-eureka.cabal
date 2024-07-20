@@ -27,6 +27,7 @@ library
     EntityService
     Persist
     SwaggerService
+    Util
 
   build-depends:
     , aeson

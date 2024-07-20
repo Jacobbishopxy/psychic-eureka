@@ -8,4 +8,4 @@ module Main where
 import SwaggerService (up)
 
 main :: IO ()
-main = up
+main = up 8080

@@ -19,7 +19,7 @@ import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.ByteString.Lazy.Char8 (pack)
 import Data.Time (defaultTimeLocale, formatTime, getCurrentTime)
 import Description (Desc)
-import Entities (User)
+import Entities (User, UserData, genUserFromData, modifyUserFromData)
 import Persist
 import Servant
 
@@ -35,12 +35,12 @@ type UserAPI =
       :> Get '[JSON] User
     :<|> "users"
       :> Summary "store a new user"
-      :> ReqBody '[JSON] User
+      :> ReqBody '[JSON] UserData
       :> Post '[JSON] ()
     :<|> "users"
       :> Summary "update existing user"
       :> Capture' '[Desc Id "unique identifier"] ":id" Id
-      :> ReqBody '[JSON] User
+      :> ReqBody '[JSON] UserData
       :> Put '[JSON] ()
     :<|> "users"
       :> Summary "delete existing user"
@@ -77,21 +77,22 @@ getUser i = do
     Left ex -> throwAsServerError ex
     Right u -> return u
 
-postUser :: User -> Handler ()
+postUser :: UserData -> Handler ()
 postUser user = do
   liftIO $ putStrLn $ "POST /users/" <> show user
-  eitherVoidEx <- liftIO $ try (liftIO $ post user)
+  user' <- liftIO $ genUserFromData user
+  eitherVoidEx <- liftIO $ try (liftIO $ post user')
   case eitherVoidEx of
     Left ex -> throwAsServerError ex
     Right v -> return v
 
-putUser :: Id -> User -> Handler ()
+putUser :: Id -> UserData -> Handler ()
 putUser i user = do
   liftIO $ putStrLn $ "PUT /users/" <> show i <> " " <> show user
-  eitherVoidEx <- liftIO $ try (put i user)
-  case eitherVoidEx of
+  eitherUserEx <- liftIO $ try (retrieve i)
+  case eitherUserEx of
     Left ex -> throwAsServerError ex
-    Right v -> return v
+    Right u -> liftIO $ put i (modifyUserFromData user u)
 
 deleteUser :: Id -> Handler ()
 deleteUser i = do
