@@ -60,30 +60,39 @@ class (ToJSON a, FromJSON a, Typeable a) => Entity a where
   mkModifiedAt :: a -> IO a
 
   -- persist a new entity
-  post :: a -> IO ()
+  post :: a -> IO a
   post entity = do
     let jsonFileName = getPath (typeRep ([] :: [a])) (getId entity)
     fileExists <- doesFileExist jsonFileName
     if fileExists
       then throw $ EntityAlreadyExists $ "entity record already exists: " <> jsonFileName
-      else liftIO $ mkCreatedAt entity >>= encodeFile jsonFileName
+      else do
+        e <- liftIO $ mkCreatedAt entity
+        encodeFile jsonFileName e
+        return e
 
   -- update an entity
-  put :: Id -> a -> IO ()
+  put :: Id -> a -> IO a
   put uid entity = do
     let jsonFileName = getPath (typeRep ([] :: [a])) uid
     fileExists <- doesFileExist jsonFileName
     if fileExists
-      then liftIO $ mkModifiedAt entity >>= encodeFile jsonFileName
+      then do
+        e <- liftIO $ mkModifiedAt entity
+        encodeFile jsonFileName e
+        return e
       else throw $ EntityNotFound $ "could not update as entity was not found: " <> jsonFileName
 
   -- delete an entity
-  delete :: Proxy a -> Id -> IO ()
+  delete :: Proxy a -> Id -> IO a
   delete proxy uid = do
     let jsonFileName = getPath (typeRep proxy) uid
     fileExists <- doesFileExist jsonFileName
     if fileExists
-      then removeFile jsonFileName
+      then do
+        e <- liftIO $ retrieve uid
+        removeFile jsonFileName
+        return e
       else throw $ EntityNotFound $ "could not delete as entity was not found: " <> jsonFileName
 
   -- load persistent entity

@@ -36,16 +36,16 @@ type UserAPI =
     :<|> "users"
       :> Summary "store a new user"
       :> ReqBody '[JSON] UserData
-      :> Post '[JSON] ()
+      :> Post '[JSON] User
     :<|> "users"
       :> Summary "update existing user"
       :> Capture' '[Desc Id "unique identifier"] ":id" Id
       :> ReqBody '[JSON] UserData
-      :> Put '[JSON] ()
+      :> Put '[JSON] User
     :<|> "users"
       :> Summary "delete existing user"
       :> Capture' '[Desc Id "unique identifier"] ":id" Id
-      :> Delete '[JSON] ()
+      :> Delete '[JSON] User
 
 userServer :: Server UserAPI
 userServer =
@@ -77,7 +77,7 @@ getUser i = do
     Left ex -> throwAsServerError ex
     Right u -> return u
 
-postUser :: UserData -> Handler ()
+postUser :: UserData -> Handler User
 postUser user = do
   liftIO $ putStrLn $ "POST /users/" <> show user
   user' <- liftIO $ genUserFromData user
@@ -86,7 +86,7 @@ postUser user = do
     Left ex -> throwAsServerError ex
     Right v -> return v
 
-putUser :: Id -> UserData -> Handler ()
+putUser :: Id -> UserData -> Handler User
 putUser i user = do
   liftIO $ putStrLn $ "PUT /users/" <> show i <> " " <> show user
   eitherUserEx <- liftIO $ try (retrieve i)
@@ -94,7 +94,7 @@ putUser i user = do
     Left ex -> throwAsServerError ex
     Right u -> liftIO $ put i (modifyUserFromData user u)
 
-deleteUser :: Id -> Handler ()
+deleteUser :: Id -> Handler User
 deleteUser i = do
   liftIO $ putStrLn $ "DELETE /users/" <> show i
   eitherVoidEx <- liftIO $ try (delete userType i)
