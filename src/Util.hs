@@ -15,7 +15,7 @@ import Data.Swagger (ToParamSchema, ToSchema)
 import Data.Text (pack)
 import Data.Time (DayOfMonth, MonthOfYear, UTCTime (..), Year, fromGregorian)
 import Data.Typeable (Typeable)
-import Data.UUID (UUID, fromString, fromText)
+import Data.UUID (UUID, fromString, fromText, toString)
 import Data.UUID.V4 (nextRandom)
 import GHC.Generics (Generic)
 import Servant (FromHttpApiData (parseUrlPiece))
@@ -44,6 +44,9 @@ instance FromHttpApiData Id where
     case fromText txt of
       Just uuid -> Right (Id uuid)
       Nothing -> Left $ pack "Failed to parse Id"
+
+idToString :: Id -> String
+idToString (Id i) = toString i
 
 defaultUTCTime :: UTCTime
 defaultUTCTime = UTCTime (fromGregorian 2024 7 15) 0

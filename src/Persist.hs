@@ -25,7 +25,7 @@ import System.Directory
     listDirectory,
     removeFile,
   )
-import Util (Id)
+import Util (Id, idToString)
 
 ----------------------------------------------------------------------------------------------------
 -- Persist
@@ -93,14 +93,14 @@ class (ToJSON a, FromJSON a, Typeable a) => Entity a where
   retrieveAll :: Maybe Int -> IO [a]
   retrieveAll maxRecords =
     listDirectory dataDir >>= \allFiles ->
-      let tr = typeRep ([] :: [a])
-          filteredFiles = List.filter (filterFn tr) allFiles
+      let filteredFiles = List.filter filterFn allFiles
           files = case maxRecords of
             Nothing -> filteredFiles
             Just n -> take n filteredFiles
        in mapM (decodeFile . (dataDir ++)) files
     where
-      filterFn tr' fn = List.isPrefixOf (show tr') fn && List.isSuffixOf ".json" fn
+      tr = typeRep ([] :: [a])
+      filterFn fn = List.isPrefixOf (show tr) fn && List.isSuffixOf ".json" fn
 
 ----------------------------------------------------------------------------------------------------
 
@@ -108,7 +108,7 @@ dataDir :: FilePath
 dataDir = "./data/"
 
 getPath :: TypeRep -> Id -> String
-getPath tr uid = dataDir <> show tr <> "." <> show uid <> ".json"
+getPath tr uid = dataDir <> show tr <> "." <> idToString uid <> ".json"
 
 decodeFile :: (FromJSON a) => String -> IO a
 decodeFile jsonFileName =
