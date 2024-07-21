@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- file: Persist.hs
@@ -17,29 +16,20 @@ import Data.Aeson
     eitherDecodeFileStrict,
     encodeFile,
   )
+import Data.Data (TypeRep)
 import qualified Data.List as List
-import Data.Maybe (fromJust)
-import Data.Swagger
-import Data.Text (pack)
-import Data.Typeable (TypeRep, Typeable, typeRep)
-import Data.UUID (UUID, fromString, fromText)
-import GHC.Generics
-import Servant
+import Data.Typeable (Typeable, typeRep)
+import Servant (Proxy)
 import System.Directory
   ( doesFileExist,
     listDirectory,
     removeFile,
   )
+import Util (Id)
 
--- newtype id
-newtype Id = Id UUID
-  deriving (Show, Eq, Ord, Read, Generic, Typeable, ToJSON, FromJSON, ToParamSchema, ToSchema)
-
-instance FromHttpApiData Id where
-  parseUrlPiece txt =
-    case fromText txt of
-      Just uuid -> Right (Id uuid)
-      Nothing -> Left $ pack "Failed to parse Id"
+----------------------------------------------------------------------------------------------------
+-- Persist
+----------------------------------------------------------------------------------------------------
 
 data PersistErr
   = EntityNotFound String
@@ -101,17 +91,17 @@ class (ToJSON a, FromJSON a, Typeable a) => Entity a where
 
   -- load all persistent entities
   retrieveAll :: Maybe Int -> IO [a]
-  retrieveAll maxRecords = do
-    let tr = typeRep ([] :: [a])
-    allFiles <- listDirectory dataDir
-    let filteredFiles = List.filter (\fname -> List.isPrefixOf (show tr) fname && List.isSuffixOf ".json" fname) allFiles
-        files = case maxRecords of
-          Nothing -> filteredFiles
-          Just n -> take n filteredFiles
-    mapM (\fname -> decodeFile (dataDir ++ fname)) files
+  retrieveAll maxRecords =
+    listDirectory dataDir >>= \allFiles ->
+      let tr = typeRep ([] :: [a])
+          filteredFiles = List.filter (filterFn tr) allFiles
+          files = case maxRecords of
+            Nothing -> filteredFiles
+            Just n -> take n filteredFiles
+       in mapM (decodeFile . (dataDir ++)) files
+    where
+      filterFn tr' fn = List.isPrefixOf (show tr') fn && List.isSuffixOf ".json" fn
 
-----------------------------------------------------------------------------------------------------
--- Helper
 ----------------------------------------------------------------------------------------------------
 
 dataDir :: FilePath
@@ -121,16 +111,11 @@ getPath :: TypeRep -> Id -> String
 getPath tr uid = dataDir <> show tr <> "." <> show uid <> ".json"
 
 decodeFile :: (FromJSON a) => String -> IO a
-decodeFile jsonFileName = do
-  fileExists <- doesFileExist jsonFileName
-  if fileExists
-    then
+decodeFile jsonFileName =
+  doesFileExist jsonFileName >>= \case
+    True ->
       eitherDecodeFileStrict jsonFileName
-        >>= \eitherEntity -> case eitherEntity of
+        >>= \case
           Left msg -> throw $ InternalError $ "could not parse data: " <> msg
           Right e -> return e
-    else
-      throw $ EntityNotFound $ "could not find: " <> jsonFileName
-
-mockId :: Id
-mockId = Id $ fromJust $ fromString "123e4567-e89b-12d3-a456-426614174000"
+    _ -> throw $ EntityNotFound $ "could not find: " <> jsonFileName

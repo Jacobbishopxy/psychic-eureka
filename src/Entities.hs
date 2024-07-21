@@ -12,8 +12,8 @@ module Entities where
 import Data.Aeson (FromJSON (..), ToJSON (..), object, withObject, (.:), (.=))
 import Data.Time (UTCTime, getCurrentTime)
 import GHC.Generics (Generic)
-import Persist (Entity (..), Id (..))
-import Util
+import Persist (Entity (..))
+import Util (Id (..), defaultUTCTime, genUid)
 
 ----------------------------------------------------------------------------------------------------
 -- User
@@ -27,9 +27,7 @@ data UserData = UserData
 
 instance FromJSON UserData where
   parseJSON = withObject "UserData" $ \v ->
-    UserData
-      <$> v .: "name"
-      <*> v .: "email"
+    UserData <$> v .: "name" <*> v .: "email"
 
 instance ToJSON UserData where
   toJSON (UserData n e) =
@@ -69,6 +67,19 @@ retrieveUser = retrieve
 ----------------------------------------------------------------------------------------------------
 -- Posting
 ----------------------------------------------------------------------------------------------------
+
+data PostingData = PostingData
+  { userRef_ :: Id,
+    text_ :: String
+  }
+  deriving (Show, Generic)
+
+instance FromJSON PostingData where
+  parseJSON = withObject "PostingData" $ \v ->
+    PostingData <$> v .: "userRef" <*> v .: "text"
+
+instance ToJSON PostingData where
+  toJSON (PostingData u t) = object ["userRef" .= u, "text" .= t]
 
 data Posting = Posting
   { postId :: Id,

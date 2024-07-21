@@ -10,21 +10,25 @@
 
 module SwaggerService where
 
-import Control.Lens
-import Data.Aeson
+import Control.Lens (mapped, (&), (.~), (?~))
+import Data.Aeson (ToJSON (toJSON))
 import Data.Swagger
-import Entities
-import EntityService
+import Entities (User (User), UserData (UserData))
+import EntityService (UserAPI, userAPI, userServer)
 import GHC.IO.Handle (Handle)
-import Network.Wai
-import Network.Wai.Handler.Warp
-import Persist (mockId)
+import Network.Wai.Handler.Warp (run)
 import Servant
-import Servant.Swagger
-import Servant.Swagger.UI
+  ( Application,
+    Proxy (..),
+    Server,
+    serve,
+    type (:<|>) (..),
+  )
+import Servant.Swagger (HasSwagger (toSwagger))
+import Servant.Swagger.UI (SwaggerSchemaUI, swaggerSchemaUIServer)
 import System.Info (os)
 import System.Process (ProcessHandle, createProcess, shell)
-import Util
+import Util (defaultUTCTime, mockId)
 
 ----------------------------------------------------------------------------------------------------
 -- User

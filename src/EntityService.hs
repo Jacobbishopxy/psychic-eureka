@@ -22,6 +22,9 @@ import Description (Desc)
 import Entities (User, UserData, genUserFromData, modifyUserFromData)
 import Persist
 import Servant
+import Util (Id)
+
+----------------------------------------------------------------------------------------------------
 
 type UserAPI =
   "welcome" :> Summary "welcome" :> Get '[PlainText] String
