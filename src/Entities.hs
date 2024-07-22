@@ -85,8 +85,8 @@ data Posting = Posting
   { postId :: Id,
     userRef :: Id,
     text :: String,
-    postCreatedAt :: Maybe UTCTime,
-    postModifiedAt :: Maybe UTCTime
+    postCreatedAt :: UTCTime,
+    postModifiedAt :: UTCTime
   }
   deriving (Show, Read, Generic, FromJSON, ToJSON)
 
@@ -94,10 +94,10 @@ instance Entity Posting where
   getId = postId
   mkCreatedAt p = do
     currentTime <- getCurrentTime
-    return p {postCreatedAt = Just currentTime, postModifiedAt = Just currentTime}
+    return p {postCreatedAt = currentTime, postModifiedAt = currentTime}
   mkModifiedAt p = do
     currentTime <- getCurrentTime
-    return p {postModifiedAt = Just currentTime}
+    return p {postModifiedAt = currentTime}
 
 ----------------------------------------------------------------------------------------------------
 

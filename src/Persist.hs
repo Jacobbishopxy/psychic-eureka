@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -35,9 +36,7 @@ data PersistErr
   = EntityNotFound String
   | EntityAlreadyExists String
   | InternalError String
-  deriving (Show)
-
-instance Exception PersistErr
+  deriving (Show, Exception)
 
 class (ToJSON a, FromJSON a, Typeable a) => Entity a where
   -- unique Id of the entity
