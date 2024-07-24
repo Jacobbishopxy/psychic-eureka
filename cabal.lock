@@ -1,0 +1,35 @@
+Resolving dependencies...
+
+The following packages need bounds and here is a suggested starting point.
+You can copy and paste this into the build-depends section in your .cabal
+file and it should work (with the appropriate removal of commas).
+
+Note that version bounds are a statement that you've successfully built and
+tested your package and expect it to work with any of the specified package
+versions (PROVIDED that those packages continue to conform with the PVP).
+Therefore, the version bounds generated here are the most conservative
+based on the versions that you are currently building with. If you know
+your package will work with versions outside the ranges generated here,
+feel free to widen them.
+
+aeson >= 2.2.3 && < 2.3,
+containers >= 0.6.8 && < 0.7,
+bytestring >= 0.12.1 && < 0.13,
+mtl >= 2.3.1 && < 2.4,
+text >= 2.1.1 && < 2.2,
+time >= 1.12.2 && < 1.13,
+aeson-pretty >= 0.8.10 && < 0.9,
+process >= 1.6.20 && < 1.7,
+directory >= 1.3.8 && < 1.4,
+http-types >= 0.12.4 && < 0.13,
+lens >= 5.3.2 && < 5.4,
+servant >= 0.20.1 && < 0.21,
+servant-docs >= 0.13 && < 0.14,
+servant-server >= 0.20 && < 0.21,
+wai >= 3.2.4 && < 3.3,
+warp >= 3.4.1 && < 3.5,
+servant-swagger >= 1.2 && < 1.3,
+swagger2 >= 2.8.9 && < 2.9,
+servant-swagger-ui >= 0.3.5 && < 0.4,
+servant-swagger-ui-core >= 0.3.5 && < 0.4,
+uuid >= 1.3.16 && < 1.4,

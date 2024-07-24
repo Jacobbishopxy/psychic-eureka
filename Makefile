@@ -5,5 +5,11 @@
 gen-hie:
 	gen-hie > hie.yaml
 
+bounds:
+	cabal gen-bounds > cabal.lock
+
+freeze:
+	cabal freeze
+
 run:
 	cabal run psychic-eureka
