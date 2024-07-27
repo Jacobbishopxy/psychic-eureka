@@ -4,15 +4,15 @@
 
 -- file: Description.hs
 -- author: Jacob Xie
--- date: 2024/07/17 20:11:19 Wednesday
+-- date: 2024/07/27 16:22:57 Saturday
 -- brief:
 
-module Description where
+module PsychicEureka.Swagger.Description where
 
 import Data.Kind (Type)
-import GHC.Generics (D1, Generic (Rep), Meta (MetaData))
+import GHC.Generics
 import GHC.TypeLits (AppendSymbol, Symbol)
-import Servant.API (Description)
+import Servant (Description)
 
 type family TypeName (x :: Type) :: Symbol where
   TypeName Int = "integer"

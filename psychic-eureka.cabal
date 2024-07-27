@@ -21,14 +21,15 @@ common warnings
 library
   import:           warnings
   hs-source-dirs:   src
-  exposed-modules:
-    Caching
-    Description
-    Entities
-    EntityService
-    Persist
-    SwaggerService
-    Util
+  exposed-modules:  PsychicEureka
+  other-modules:
+    PsychicEureka.Cache
+    PsychicEureka.Entity
+    PsychicEureka.Error
+    PsychicEureka.Service
+    PsychicEureka.Swagger.Description
+    PsychicEureka.Swagger.Schema
+    PsychicEureka.Util
 
   build-depends:
     , aeson
