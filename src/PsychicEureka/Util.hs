@@ -22,10 +22,11 @@ import Data.Maybe (fromJust)
 import Data.Swagger (ToParamSchema, ToSchema)
 import Data.Text (pack)
 import Data.Time (defaultTimeLocale, formatTime, getCurrentTime)
-import Data.UUID (UUID, fromString, fromText, toString)
+import Data.UUID (UUID, fromString, fromText, toString, toText)
 import Data.UUID.V4 (nextRandom)
 import GHC.Generics (Generic)
-import Servant (FromHttpApiData (..))
+import Servant (FromHttpApiData (..), ToHttpApiData (toUrlPiece))
+import Servant.Docs (ToSample (toSamples), singleSample)
 
 newtype Id = Id UUID
   deriving
@@ -46,6 +47,14 @@ instance FromHttpApiData Id where
     case fromText txt of
       Just uuid -> Right (Id uuid)
       Nothing -> Left $ pack "Failed to parse Id"
+
+instance ToHttpApiData Id where
+  toUrlPiece (Id uuid) = toText uuid
+
+instance ToSample Id where
+  toSamples _ = singleSample $ Id (read "123e4567-e89b-12d3-a456-426614174000")
+
+----------------------------------------------------------------------------------------------------
 
 id2str :: Id -> String
 id2str (Id i) = toString i

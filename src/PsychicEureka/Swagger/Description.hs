@@ -7,7 +7,10 @@
 -- date: 2024/07/27 16:22:57 Saturday
 -- brief:
 
-module PsychicEureka.Swagger.Description where
+module PsychicEureka.Swagger.Description
+  ( Desc,
+  )
+where
 
 import Data.Kind (Type)
 import GHC.Generics
