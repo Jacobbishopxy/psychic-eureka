@@ -18,7 +18,11 @@ import PsychicEureka.Util (Id)
 -- EntityCache
 ----------------------------------------------------------------------------------------------------
 
-type EntityCacheStore a = IORef (Map.Map String Id, Map.Map Id a)
+type NameIdMapping = Map.Map String Id
+
+type IdEntityMapping = Map.Map Id
+
+type EntityCacheStore a = IORef (NameIdMapping, IdEntityMapping a)
 
 class (Entity.Entity a) => EntityCache a where
   -- init
@@ -34,8 +38,18 @@ class (Entity.Entity a) => EntityCache a where
   getNameMap ref = readIORef ref >>= return . fst
 
   -- get id by name
-  getIdByName :: EntityCacheStore a -> String -> IO (Maybe Id)
-  getIdByName ref n = readIORef ref >>= return . Map.lookup n . fst
+  getIdByName :: EntityCacheStore a -> String -> IO Id
+  getIdByName ref n =
+    readIORef ref >>= \(m, _) ->
+      case Map.lookup n m of
+        Nothing -> throw $ EntityNotFound n
+        Just i -> return i
+
+  -- get id by name, return `Maybe`
+  -- (this function is used by the following functions;
+  -- instead of throwing error, a `Maybe` type is more flexible
+  getIdByNameM :: EntityCacheStore a -> String -> IO (Maybe Id)
+  getIdByNameM ref n = readIORef ref >>= return . Map.lookup n . fst
 
   -- retrieve an `a` from a caching
   retrieve :: EntityCacheStore a -> Id -> IO a
@@ -52,26 +66,24 @@ class (Entity.Entity a) => EntityCache a where
   -- retrieve an `a` by name
   retrieveByName :: EntityCacheStore a -> String -> IO a
   retrieveByName ref n =
-    getIdByName ref n >>= \case
+    getIdByNameM ref n >>= \case
       Nothing -> throw $ EntityNotFound $ show n
       Just i -> retrieve ref i
 
   -- save an `a`
   save :: EntityCacheStore a -> Entity.EntityInput a -> IO a
   save ref inp =
-    getIdByName ref (Entity.getName inp) >>= \case
+    getIdByNameM ref (Entity.getName inp) >>= \case
       -- if name exists, throw error
       Just id' -> throw $ EntityAlreadyExists $ show id'
       Nothing -> do
         -- first, persist this new Entity; throw exception if err
         e <- Entity.save inp
-        let i = Entity.getId e
-            n = Entity.getName e
+        let (i, n) = (Entity.getId e, Entity.getName e)
         -- then, update the cache
         _ <- atomicModifyIORef ref $ \(mni, mie) ->
-          let newMni = Map.insert n i mni
-              newMie = Map.insert i e mie
-           in ((newMni, newMie), ())
+          let newM = (Map.insert n i mni, Map.insert i e mie)
+           in (newM, ())
         return e
 
   -- update an `a`
@@ -100,28 +112,29 @@ class (Entity.Entity a) => EntityCache a where
               let newMie = Map.insert i e mie
                in ((mni, newMie), e)
 
-  -- delete an `a`
-  delete :: EntityCacheStore a -> Id -> IO a
-  delete ref i =
+  -- remove an `a`
+  remove :: EntityCacheStore a -> Id -> IO a
+  remove ref i =
     readIORef ref >>= \(_, m) ->
       case Map.lookup i m of
         Nothing -> throw $ EntityNotFound $ show i
         Just _ ->
+          -- first persist, then update the cache
           Entity.delete i >>= \e ->
             atomicModifyIORef ref $ \(mni, mie) ->
               let newMni = Map.delete (Entity.getName e) mni
                   newMie = Map.delete i mie
                in ((newMni, newMie), e)
 
-  -- delete an `a` by name
-  deleteByName :: EntityCacheStore a -> String -> IO a
-  deleteByName ref n =
+  -- remove an `a` by name
+  removeByName :: EntityCacheStore a -> String -> IO a
+  removeByName ref n =
     readIORef ref >>= \(m, _) ->
       case Map.lookup n m of
         Nothing -> throw $ EntityNotFound $ show n
         Just i ->
+          -- first persist, then update the cache
           Entity.delete i >>= \e ->
             atomicModifyIORef ref $ \(mni, mie) ->
-              let newMni = Map.delete n mni
-                  newMie = Map.delete (Entity.getId e) mie
-               in ((newMni, newMie), e)
+              let newM = (Map.delete n mni, Map.delete (Entity.getId e) mie)
+               in (newM, e)

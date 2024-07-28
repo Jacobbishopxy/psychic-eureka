@@ -12,6 +12,7 @@ module PsychicEureka.Util
     str2id,
     genId,
     mockId,
+    getNowString,
   )
 where
 
@@ -20,7 +21,8 @@ import Data.Data (Typeable)
 import Data.Maybe (fromJust)
 import Data.Swagger (ToParamSchema, ToSchema)
 import Data.Text (pack)
-import Data.UUID
+import Data.Time (defaultTimeLocale, formatTime, getCurrentTime)
+import Data.UUID (UUID, fromString, fromText, toString)
 import Data.UUID.V4 (nextRandom)
 import GHC.Generics (Generic)
 import Servant (FromHttpApiData (..))
@@ -56,3 +58,6 @@ genId = Id <$> nextRandom
 
 mockId :: Id
 mockId = Id $ fromJust $ fromString "123e4567-e89b-12d3-a456-426614174000"
+
+getNowString :: IO String
+getNowString = getCurrentTime >>= return . formatTime defaultTimeLocale "%FT%T%QZ"
