@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -16,6 +17,7 @@ module PsychicEureka.Swagger.Schema
     launch,
     entityServer,
     swaggerServer,
+    app,
   )
 where
 
@@ -102,7 +104,11 @@ type EntityAPI a =
       :> QueryParam' '[Required, Desc String "entity name"] "name" String
       :> Delete '[JSON] a
 
-entityServer :: (Service.EntityService a) => Proxy a -> Cache.EntityCacheStore a -> Server (EntityAPI a)
+entityServer ::
+  (Service.EntityService a) =>
+  Proxy a ->
+  Cache.EntityCacheStore a ->
+  Server (EntityAPI a)
 entityServer p ecs =
   Service.getEntityNameAndTime p
     :<|> Service.getNameMap ecs
@@ -115,6 +121,19 @@ entityServer p ecs =
     :<|> Service.deleteEntity ecs
     :<|> Service.deleteEntityByName ecs
 
-swaggerServer :: (Service.EntityService a, HasSwagger a) => Proxy a -> DocInfo -> Cache.EntityCacheStore a -> Server (API a)
+swaggerServer ::
+  (Service.EntityService a, HasSwagger a) =>
+  Proxy a ->
+  DocInfo ->
+  Cache.EntityCacheStore a ->
+  Server (API a)
 swaggerServer p di ecs =
   swaggerSchemaUIServer (swaggerDoc p di) :<|> (entityServer p ecs)
+
+app ::
+  (Service.EntityService a, HasSwagger a, HasServer (API a) '[]) =>
+  Proxy a ->
+  DocInfo ->
+  Cache.EntityCacheStore a ->
+  Application
+app p di ecs = serve (Proxy :: Proxy (API a)) (swaggerServer p di ecs)
