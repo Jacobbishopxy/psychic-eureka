@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -10,12 +11,14 @@
 
 module Main where
 
-import Data.Aeson (FromJSON, ToJSON)
-import Data.Swagger (ToSchema)
+import Control.Lens (mapped, (&), (?~))
+import Data.Aeson (FromJSON (parseJSON), KeyValue ((.=)), ToJSON (toJSON), object, withObject, (.:))
+import Data.Swagger (HasDescription (description), HasExample (example), SchemaOptions (..), ToSchema, declareNamedSchema, defaultSchemaOptions, fieldLabelModifier, genericDeclareNamedSchema)
+import Data.Swagger.Lens (HasSchema (..))
 import Data.Time (UTCTime, getCurrentTime)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (run)
-import PsychicEureka (Id, genId)
+import PsychicEureka (Id, genId, mockId, mockUTCTime)
 import PsychicEureka.Cache (EntityCache (initialize), EntityCacheStore)
 import PsychicEureka.Entity (Entity (..), NameEntity (getName))
 import PsychicEureka.Service (EntityService)
@@ -30,7 +33,29 @@ data UserInput = UserInput
     email_ :: String,
     password_ :: String
   }
-  deriving (Generic, FromJSON, ToSchema)
+  deriving (Generic)
+
+instance FromJSON UserInput where
+  parseJSON = withObject "UserInput" $ \v ->
+    UserInput <$> v .: "name" <*> v .: "email" <*> v .: "password"
+
+instance ToJSON UserInput where
+  toJSON (UserInput n e p) =
+    object ["name" .= n, "email" .= e, "password" .= p]
+
+instance ToSchema UserInput where
+  declareNamedSchema proxy =
+    genericDeclareNamedSchema schemaOptions proxy
+      & mapped . schema . description ?~ "Used for create/modify a User"
+      & mapped . schema . example ?~ toJSON (UserInput "Jacob" "jacob@prod.com" "123456")
+    where
+      schemaOptions =
+        defaultSchemaOptions
+          { fieldLabelModifier = dropTrailingUnderscore
+          }
+
+dropTrailingUnderscore :: String -> String
+dropTrailingUnderscore = reverse . dropWhile (== '_') . reverse
 
 data User = User
   { uid :: Id,
@@ -42,12 +67,14 @@ data User = User
   }
   deriving (Show, Eq, Generic, ToJSON, FromJSON, EntityCache, EntityService)
 
+instance ToSchema User where
+  declareNamedSchema proxy =
+    genericDeclareNamedSchema defaultSchemaOptions proxy
+      & mapped . schema . description ?~ "This is a User API (tm)"
+      & mapped . schema . example ?~ toJSON (User mockId "JacobX" "xy@dev.com" "123456" mockUTCTime mockUTCTime)
+
 ----------------------------------------------------------------------------------------------------
 -- impl
-
--- instance ToSchema UserInput
-
-instance ToSchema User
 
 instance NameEntity UserInput where
   getName = name_
@@ -97,15 +124,13 @@ main = do
       docInfo = DocInfo {docVersion = "0.1", docTitle = "UserServer", docDescription = "test lib:psychic-eureka"}
 
   store <- initialize :: IO (EntityCacheStore User)
-  _ <- launch prt
+  -- _ <- launch prt
 
   let userType = Proxy :: Proxy User
       entityApi = Proxy :: Proxy (EntityAPI User)
       sd = swaggerDoc entityApi docInfo
       es = entityServer userType store
-      -- ss = swaggerServer userType docInfo store :: Server (API User)
       ss = swaggerSchemaUIServer sd :<|> es :: Server (API User)
-      -- app' = app (Proxy :: Proxy (EntityAPI User)) docInfo store
       app' = serve (Proxy :: Proxy (API User)) ss
 
   putStrLn $ "Starting server on port " <> show prt

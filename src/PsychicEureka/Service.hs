@@ -7,7 +7,10 @@
 -- date: 2024/07/27 19:28:46 Saturday
 -- brief:
 
-module PsychicEureka.Service where
+module PsychicEureka.Service
+  ( EntityService (..),
+  )
+where
 
 import Control.Exception (try)
 import Control.Monad.Error.Class (MonadError)
@@ -19,6 +22,14 @@ import qualified PsychicEureka.Entity as Entity
 import PsychicEureka.Error (EurekaError (..))
 import PsychicEureka.Util (Id, getNowString)
 import Servant
+  ( Handler,
+    Proxy,
+    ServerError (errBody),
+    err404,
+    err409,
+    err500,
+    throwError,
+  )
 
 ----------------------------------------------------------------------------------------------------
 -- EntityService

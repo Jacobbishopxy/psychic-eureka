@@ -50,13 +50,13 @@ swaggerDoc customAPI (DocInfo t v d) =
 
 type EntityAPI a =
   "entity_name_and_time" :> Summary "get entity name and the current time" :> Get '[PlainText] String
-    :<|> "name_map"
+    :<|> "entity_name_map"
       :> Summary "name id mapping"
       :> Get '[JSON] Cache.NameIdMapping
-    :<|> "id_by_name"
-      :> Summary "retrieve"
+    :<|> "entity_id_by_name"
+      :> Summary "retrieve entity id by name"
       :> QueryParam' '[Required, Desc String "entity name"] "name" String
-      :> Get '[PlainText] Id
+      :> Get '[JSON] Id
     :<|> "entity"
       :> Summary "retrieve entity identified by :id"
       :> Capture' '[Desc Id "unique identifier"] ":id" Id

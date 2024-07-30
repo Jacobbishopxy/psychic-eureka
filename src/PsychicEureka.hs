@@ -4,7 +4,13 @@
 -- brief:
 
 module PsychicEureka
-  ( module PsychicEureka.Util,
+  ( Id,
+    id2str,
+    str2id,
+    genId,
+    mockId,
+    getNowString,
+    mockUTCTime,
   )
 where
 

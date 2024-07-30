@@ -27,12 +27,12 @@ library
     PsychicEureka.Entity
     PsychicEureka.Service
     PsychicEureka.Swagger
-    PsychicEureka.Util
 
   other-modules:
     PsychicEureka.Error
     PsychicEureka.Swagger.Description
     PsychicEureka.Swagger.Schema
+    PsychicEureka.Util
 
   build-depends:
     , aeson
@@ -89,6 +89,7 @@ test-suite test-user-server
   build-depends:
     , aeson
     , base                ^>=4.19.1.0
+    , lens
     , psychic-eureka
     , servant-server
     , servant-swagger

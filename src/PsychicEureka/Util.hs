@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- file: Util.hs
 -- author: Jacob Xie
@@ -13,22 +14,26 @@ module PsychicEureka.Util
     str2id,
     genId,
     mockId,
+    mockUTCTime,
     getNowString,
   )
 where
 
-import Data.Aeson (FromJSON, ToJSON)
+import Control.Lens ((&), (?~))
+import Data.Aeson (FromJSON (..), ToJSON (toJSON), withText)
 import Data.ByteString (toStrict)
 import Data.Data (Typeable)
 import Data.Maybe (fromJust)
-import Data.Swagger (ToParamSchema, ToSchema)
+import Data.Swagger (HasDescription (description), HasFormat (..), HasType (..), NamedSchema (..), SwaggerType (..), ToParamSchema, ToSchema (declareNamedSchema))
 import Data.Text (pack)
-import Data.Time (defaultTimeLocale, formatTime, getCurrentTime)
+import Data.Time (UTCTime (..), defaultTimeLocale, formatTime, fromGregorian, getCurrentTime)
 import Data.UUID (UUID, fromString, fromText, toByteString, toString, toText)
 import Data.UUID.V4 (nextRandom)
 import GHC.Generics (Generic)
-import Servant (FromHttpApiData (..), MimeRender (mimeRender), PlainText, ToHttpApiData (..))
+import Servant (FromHttpApiData (..), ToHttpApiData (..))
 import Servant.Docs (ToSample (toSamples), singleSample)
+
+----------------------------------------------------------------------------------------------------
 
 newtype Id = Id UUID
   deriving
@@ -38,11 +43,26 @@ newtype Id = Id UUID
       Read,
       Generic,
       Typeable,
-      ToJSON,
-      FromJSON,
-      ToParamSchema,
-      ToSchema
+      ToParamSchema
     )
+
+instance ToJSON Id where
+  toJSON (Id uuid) = toJSON (toText uuid)
+
+instance FromJSON Id where
+  parseJSON = withText "Id" $ \t ->
+    case fromText t of
+      Just uuid -> pure (Id uuid)
+      Nothing -> fail "Invalid UUID string"
+
+instance ToSchema Id where
+  declareNamedSchema _ =
+    return $
+      NamedSchema (Just "Id") $
+        mempty
+          & type_ ?~ SwaggerString
+          & format ?~ "uuid"
+          & description ?~ "A unique identifier in UUID format"
 
 instance FromHttpApiData Id where
   parseUrlPiece txt =
@@ -58,9 +78,6 @@ instance ToHttpApiData Id where
 instance ToSample Id where
   toSamples _ = singleSample $ Id (read "123e4567-e89b-12d3-a456-426614174000")
 
-instance MimeRender PlainText Id where
-  mimeRender _ (Id uuid) = toByteString uuid
-
 ----------------------------------------------------------------------------------------------------
 
 id2str :: Id -> String
@@ -74,6 +91,9 @@ genId = Id <$> nextRandom
 
 mockId :: Id
 mockId = Id $ fromJust $ fromString "123e4567-e89b-12d3-a456-426614174000"
+
+mockUTCTime :: UTCTime
+mockUTCTime = UTCTime (fromGregorian 2024 7 15) 0
 
 getNowString :: IO String
 getNowString = getCurrentTime >>= return . formatTime defaultTimeLocale "%FT%T%QZ"
