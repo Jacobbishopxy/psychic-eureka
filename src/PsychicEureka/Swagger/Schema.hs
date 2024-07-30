@@ -95,8 +95,8 @@ entityServer ::
   Server (EntityAPI a)
 entityServer p ecs =
   Service.getEntityNameAndTime p
-    :<|> Service.getNameMap ecs
-    :<|> Service.getIdByName ecs
+    :<|> Service.getEntityNameMap ecs
+    :<|> Service.getEntityIdByName ecs
     :<|> Service.getEntity ecs
     :<|> Service.getEntityByName ecs
     :<|> Service.postEntity ecs

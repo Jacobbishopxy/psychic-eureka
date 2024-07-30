@@ -21,16 +21,18 @@ common warnings
 library
   import:           warnings
   hs-source-dirs:   src
-  exposed-modules:  PsychicEureka
-  other-modules:
+  exposed-modules:
+    PsychicEureka
     PsychicEureka.Cache
     PsychicEureka.Entity
-    PsychicEureka.Error
     PsychicEureka.Service
     PsychicEureka.Swagger
+    PsychicEureka.Util
+
+  other-modules:
+    PsychicEureka.Error
     PsychicEureka.Swagger.Description
     PsychicEureka.Swagger.Schema
-    PsychicEureka.Util
 
   build-depends:
     , aeson
@@ -86,9 +88,11 @@ test-suite test-user-server
   ghc-options:      -threaded -rtsopts -with-rtsopts=-N
   build-depends:
     , aeson
-    , base             ^>=4.19.1.0
+    , base                ^>=4.19.1.0
     , psychic-eureka
     , servant-server
     , servant-swagger
+    , servant-swagger-ui
+    , swagger2
     , time
     , warp

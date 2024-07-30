@@ -9,7 +9,11 @@
 -- date: 2024/07/27 15:16:38 Saturday
 -- brief:
 
-module PsychicEureka.Entity where
+module PsychicEureka.Entity
+  ( NameEntity (..),
+    Entity (..),
+  )
+where
 
 import Control.Exception (throw)
 import Data.Aeson (FromJSON, ToJSON, eitherDecodeFileStrict, encodeFile)

@@ -12,14 +12,17 @@ module PsychicEureka.Swagger
     app,
     DocInfo (..),
     API,
+    EntityAPI,
     swaggerServer,
+    entityServer,
+    swaggerDoc,
   )
 where
 
 import GHC.IO.Handle (Handle)
 import qualified PsychicEureka.Cache as Cache
 import qualified PsychicEureka.Service as Service
-import PsychicEureka.Swagger.Schema (API, DocInfo (..), swaggerServer)
+import PsychicEureka.Swagger.Schema
 import Servant (Application, HasServer, Proxy (..), serve)
 import Servant.Swagger (HasSwagger)
 import System.Info (os)

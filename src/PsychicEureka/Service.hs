@@ -29,11 +29,11 @@ class (Cache.EntityCache a) => EntityService a where
   getEntityNameAndTime :: Proxy a -> Handler String
   getEntityNameAndTime p = liftIO getNowString >>= \nw -> return $ show (typeRep p) <> "\n" <> nw
 
-  getNameMap :: Cache.EntityCacheStore a -> Handler Cache.NameIdMapping
-  getNameMap = liftIO . Cache.getNameMap
+  getEntityNameMap :: Cache.EntityCacheStore a -> Handler Cache.NameIdMapping
+  getEntityNameMap = liftIO . Cache.getNameMap
 
-  getIdByName :: Cache.EntityCacheStore a -> String -> Handler Id
-  getIdByName ref n =
+  getEntityIdByName :: Cache.EntityCacheStore a -> String -> Handler Id
+  getEntityIdByName ref n =
     liftIO (try $ Cache.getIdByName ref n) >>= handleOutput
 
   getEntity :: Cache.EntityCacheStore a -> Id -> Handler a

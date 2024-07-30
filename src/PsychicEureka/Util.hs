@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 -- file: Util.hs
 -- author: Jacob Xie
@@ -17,15 +18,16 @@ module PsychicEureka.Util
 where
 
 import Data.Aeson (FromJSON, ToJSON)
+import Data.ByteString (toStrict)
 import Data.Data (Typeable)
 import Data.Maybe (fromJust)
 import Data.Swagger (ToParamSchema, ToSchema)
 import Data.Text (pack)
 import Data.Time (defaultTimeLocale, formatTime, getCurrentTime)
-import Data.UUID (UUID, fromString, fromText, toString, toText)
+import Data.UUID (UUID, fromString, fromText, toByteString, toString, toText)
 import Data.UUID.V4 (nextRandom)
 import GHC.Generics (Generic)
-import Servant (FromHttpApiData (..), ToHttpApiData (toUrlPiece))
+import Servant (FromHttpApiData (..), MimeRender (mimeRender), PlainText, ToHttpApiData (..))
 import Servant.Docs (ToSample (toSamples), singleSample)
 
 newtype Id = Id UUID
@@ -50,9 +52,14 @@ instance FromHttpApiData Id where
 
 instance ToHttpApiData Id where
   toUrlPiece (Id uuid) = toText uuid
+  toHeader (Id uuid) = toStrict $ toByteString uuid
+  toQueryParam (Id uuid) = toText uuid
 
 instance ToSample Id where
   toSamples _ = singleSample $ Id (read "123e4567-e89b-12d3-a456-426614174000")
+
+instance MimeRender PlainText Id where
+  mimeRender _ (Id uuid) = toByteString uuid
 
 ----------------------------------------------------------------------------------------------------
 

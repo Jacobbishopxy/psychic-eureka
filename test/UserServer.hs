@@ -1,10 +1,7 @@
-{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 -- file: UserServer.hs
 -- author: Jacob Xie
@@ -13,18 +10,18 @@
 
 module Main where
 
-import Data.Aeson
-import Data.Data (Proxy (Proxy))
+import Data.Aeson (FromJSON, ToJSON)
+import Data.Swagger (ToSchema)
 import Data.Time (UTCTime, getCurrentTime)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (run)
+import PsychicEureka (Id, genId)
 import PsychicEureka.Cache (EntityCache (initialize), EntityCacheStore)
 import PsychicEureka.Entity (Entity (..), NameEntity (getName))
 import PsychicEureka.Service (EntityService)
 import PsychicEureka.Swagger
-import PsychicEureka.Swagger.Schema (swaggerDoc)
-import PsychicEureka.Util (Id, genId)
-import Servant.Swagger (HasSwagger)
+import Servant (Proxy (..), Server, serve, type (:<|>) ((:<|>)))
+import Servant.Swagger.UI (swaggerSchemaUIServer)
 
 ----------------------------------------------------------------------------------------------------
 
@@ -33,6 +30,7 @@ data UserInput = UserInput
     email_ :: String,
     password_ :: String
   }
+  deriving (Generic, FromJSON, ToSchema)
 
 data User = User
   { uid :: Id,
@@ -46,6 +44,10 @@ data User = User
 
 ----------------------------------------------------------------------------------------------------
 -- impl
+
+-- instance ToSchema UserInput
+
+instance ToSchema User
 
 instance NameEntity UserInput where
   getName = name_
@@ -97,6 +99,15 @@ main = do
   store <- initialize :: IO (EntityCacheStore User)
   _ <- launch prt
 
+  let userType = Proxy :: Proxy User
+      entityApi = Proxy :: Proxy (EntityAPI User)
+      sd = swaggerDoc entityApi docInfo
+      es = entityServer userType store
+      -- ss = swaggerServer userType docInfo store :: Server (API User)
+      ss = swaggerSchemaUIServer sd :<|> es :: Server (API User)
+      -- app' = app (Proxy :: Proxy (EntityAPI User)) docInfo store
+      app' = serve (Proxy :: Proxy (API User)) ss
+
   putStrLn $ "Starting server on port " <> show prt
 
--- run prt app'
+  run prt app'

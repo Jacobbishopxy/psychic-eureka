@@ -5,7 +5,13 @@
 -- date: 2024/07/27 15:58:21 Saturday
 -- brief:
 
-module PsychicEureka.Cache where
+module PsychicEureka.Cache
+  ( NameIdMapping,
+    IdEntityMapping,
+    EntityCacheStore,
+    EntityCache (..),
+  )
+where
 
 import Control.Concurrent (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
 import Control.Exception (throw)
