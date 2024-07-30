@@ -1,6 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -14,17 +12,14 @@ module PsychicEureka.Swagger.Schema
     EntityAPI,
     DocInfo (..),
     swaggerDoc,
-    launch,
     entityServer,
     swaggerServer,
-    app,
   )
 where
 
 import Control.Lens ((&), (.~), (?~))
 import Data.Swagger
 import Data.Text (pack)
-import GHC.IO.Handle (Handle)
 import qualified PsychicEureka.Cache as Cache
 import qualified PsychicEureka.Entity as Entity
 import qualified PsychicEureka.Service as Service
@@ -36,8 +31,6 @@ import Servant.Swagger.UI
   ( SwaggerSchemaUI,
     swaggerSchemaUIServer,
   )
-import System.Info (os)
-import System.Process (ProcessHandle, createProcess, shell)
 
 type API a = SwaggerSchemaUI "swagger-ui" "swagger.json" :<|> EntityAPI a
 
@@ -54,15 +47,6 @@ swaggerDoc customAPI (DocInfo t v d) =
     & info . version .~ (pack v)
     & info . description ?~ (pack d)
     & info . license ?~ ("BSD 3.0" & url ?~ URL "https://opensource.org/licenses/BSD-3-Clause")
-
-launch :: Int -> IO (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
-launch p =
-  case os of
-    "mingw32" -> createProcess (shell $ "start " ++ u)
-    "darwin" -> createProcess (shell $ "open " ++ u)
-    _ -> createProcess (shell $ "xdg-open " ++ u)
-  where
-    u = "http://localhost:" <> show p <> "/swagger-ui"
 
 type EntityAPI a =
   "entity_name_and_time" :> Summary "get entity name and the current time" :> Get '[PlainText] String
@@ -129,11 +113,3 @@ swaggerServer ::
   Server (API a)
 swaggerServer p di ecs =
   swaggerSchemaUIServer (swaggerDoc p di) :<|> (entityServer p ecs)
-
-app ::
-  (Service.EntityService a, HasSwagger a, HasServer (API a) '[]) =>
-  Proxy a ->
-  DocInfo ->
-  Cache.EntityCacheStore a ->
-  Application
-app p di ecs = serve (Proxy :: Proxy (API a)) (swaggerServer p di ecs)

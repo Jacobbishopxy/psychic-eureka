@@ -16,6 +16,7 @@ import Data.Aeson (FromJSON, ToJSON, eitherDecodeFileStrict, encodeFile)
 import Data.Data (Proxy (..), TypeRep, Typeable, typeRep)
 import qualified Data.List as List
 import Data.Time (UTCTime)
+import GHC.Generics (Generic)
 import PsychicEureka.Error (EurekaError (..))
 import PsychicEureka.Util (Id, id2str)
 import System.Directory (doesFileExist, listDirectory, removeFile)
@@ -28,7 +29,8 @@ class NameEntity a where
   getName :: a -> String
 
 type EntityConstraint a =
-  ( ToJSON a,
+  ( Generic a,
+    ToJSON a,
     FromJSON a,
     Eq a,
     NameEntity a,

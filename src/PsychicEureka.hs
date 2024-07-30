@@ -4,6 +4,10 @@
 -- brief:
 
 module PsychicEureka
-  (
+  ( module PsychicEureka.Util,
+    module PsychicEureka.Swagger,
   )
 where
+
+import PsychicEureka.Swagger
+import PsychicEureka.Util

@@ -4,7 +4,10 @@ cradle:
       component: "lib:psychic-eureka"
 
     - path: "app/Main.hs"
-      component: "psychic-eureka:exe:psychic-eureka"
+      component: "psychic-eureka:exe:psychic-eureka-main"
 
     - path: "test"
       component: "psychic-eureka:test:test-rand-uuid"
+
+    - path: "test/UserServer.hs"
+      component: "psychic-eureka:test:test-user-server"
