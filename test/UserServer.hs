@@ -124,6 +124,7 @@ main = do
       docInfo = DocInfo {docVersion = "0.1", docTitle = "UserServer", docDescription = "test lib:psychic-eureka"}
 
   store <- initialize :: IO (EntityCacheStore User)
+  -- open browser
   -- _ <- launch prt
 
   let userType = Proxy :: Proxy User

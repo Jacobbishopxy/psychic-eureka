@@ -65,6 +65,9 @@ type EntityAPI a =
       :> Summary "retrieve entity by name"
       :> QueryParam' '[Required, Desc String "entity name"] "name" String
       :> Get '[JSON] a
+    :<|> "entity_all"
+      :> Summary "retrieve all entities"
+      :> Get '[JSON] [a]
     :<|> "entity"
       :> Summary "store a new entity"
       :> ReqBody '[JSON] (Entity.EntityInput a)
@@ -99,6 +102,7 @@ entityServer p ecs =
     :<|> Service.getEntityIdByName ecs
     :<|> Service.getEntity ecs
     :<|> Service.getEntityByName ecs
+    :<|> Service.getAllEntities ecs
     :<|> Service.postEntity ecs
     :<|> Service.putEntity ecs
     :<|> Service.putEntityByName ecs

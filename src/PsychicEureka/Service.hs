@@ -44,36 +44,40 @@ class (Cache.EntityCache a) => EntityService a where
   getEntityNameMap = liftIO . Cache.getNameMap
 
   getEntityIdByName :: Cache.EntityCacheStore a -> String -> Handler Id
-  getEntityIdByName ref n =
-    liftIO (try $ Cache.getIdByName ref n) >>= handleOutput
+  getEntityIdByName cs n =
+    liftIO (try $ Cache.getIdByName cs n) >>= handleOutput
 
   getEntity :: Cache.EntityCacheStore a -> Id -> Handler a
-  getEntity ref i =
-    liftIO (try $ Cache.retrieve ref i) >>= handleOutput
+  getEntity cs i =
+    liftIO (try $ Cache.retrieve cs i) >>= handleOutput
 
   getEntityByName :: Cache.EntityCacheStore a -> String -> Handler a
-  getEntityByName ref n =
-    liftIO (try $ Cache.retrieveByName ref n) >>= handleOutput
+  getEntityByName cs n =
+    liftIO (try $ Cache.retrieveByName cs n) >>= handleOutput
+
+  getAllEntities :: Cache.EntityCacheStore a -> Handler [a]
+  getAllEntities cs =
+    liftIO (try $ Cache.retrieveAll cs) >>= handleOutput
 
   postEntity :: Cache.EntityCacheStore a -> Entity.EntityInput a -> Handler a
-  postEntity ref inp =
-    liftIO (try $ Cache.save ref inp) >>= handleOutput
+  postEntity cs inp =
+    liftIO (try $ Cache.save cs inp) >>= handleOutput
 
   putEntity :: Cache.EntityCacheStore a -> Id -> Entity.EntityInput a -> Handler a
-  putEntity ref i inp =
-    liftIO (try $ Cache.update ref i inp) >>= handleOutput
+  putEntity cs i inp =
+    liftIO (try $ Cache.update cs i inp) >>= handleOutput
 
   putEntityByName :: Cache.EntityCacheStore a -> String -> Entity.EntityInput a -> Handler a
-  putEntityByName ref n inp =
-    liftIO (try $ Cache.updateByName ref n inp) >>= handleOutput
+  putEntityByName cs n inp =
+    liftIO (try $ Cache.updateByName cs n inp) >>= handleOutput
 
   deleteEntity :: Cache.EntityCacheStore a -> Id -> Handler a
-  deleteEntity ref i =
-    liftIO (try $ Cache.remove ref i) >>= handleOutput
+  deleteEntity cs i =
+    liftIO (try $ Cache.remove cs i) >>= handleOutput
 
   deleteEntityByName :: Cache.EntityCacheStore a -> String -> Handler a
-  deleteEntityByName ref n =
-    liftIO (try $ Cache.removeByName ref n) >>= handleOutput
+  deleteEntityByName cs n =
+    liftIO (try $ Cache.removeByName cs n) >>= handleOutput
 
 ----------------------------------------------------------------------------------------------------
 
