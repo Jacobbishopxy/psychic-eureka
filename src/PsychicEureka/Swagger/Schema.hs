@@ -1,7 +1,8 @@
-{-# LANGUAGE DataKinds #-}
+-- {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
 
 -- file: Schema.hs
@@ -10,99 +11,68 @@
 -- brief:
 
 module PsychicEureka.Swagger.Schema
-  ( API,
-    EntityAPI,
+  ( EntityAPI,
+    EntitySwaggerAPI,
     DocInfo (..),
-    swaggerDoc,
+    generateSwagger,
     entityServer,
     swaggerServer,
+    printApiInfo,
   )
 where
 
 import Control.Lens ((&), (.~), (?~))
 import Data.Swagger
 import Data.Text (pack)
+import GHC.TypeLits (KnownSymbol)
 import qualified PsychicEureka.Cache as Cache
-import qualified PsychicEureka.Entity as Entity
 import qualified PsychicEureka.Service as Service
-import PsychicEureka.Swagger.TypeF (Desc)
-import PsychicEureka.Util (Id)
-import Servant
+import PsychicEureka.Swagger.TypeF
+import Servant (Proxy, Server, type (:<|>) ((:<|>)))
 import Servant.Swagger (HasSwagger (toSwagger))
-import Servant.Swagger.UI
-  ( SwaggerSchemaUI,
-    swaggerSchemaUIServer,
-  )
+import Servant.Swagger.UI (swaggerSchemaUIServer)
 
-type API a = SwaggerSchemaUI "swagger-ui" "swagger.json" :<|> EntityAPI a
+----------------------------------------------------------------------------------------------------
 
+-- | 'DocInfo' represents the documentation metadata for the Swagger documentation.
 data DocInfo = DocInfo
   { docTitle :: String,
     docVersion :: String,
     docDescription :: String
   }
 
--- customAPI has to be a proxy which satisfies function `entityServer`'s return type
--- e.g.: `Proxy :: Proxy (EntityAPI MyData)`
-swaggerDoc :: (HasSwagger api) => Proxy api -> DocInfo -> Swagger
-swaggerDoc customAPI (DocInfo t v d) =
-  toSwagger customAPI
+-- | 'generateSwagger' generates the Swagger documentation for a given 'EntityAPI'.
+-- It uses the provided 'DocInfo' to fill in the metadata.
+generateSwagger ::
+  (HasSwagger (EntityAPI entity a), KnownSymbol entity) =>
+  -- | Proxy for the entity prefix.
+  Proxy entity ->
+  -- | Proxy for the 'EntityAPI' type.
+  Proxy (EntityAPI entity a) ->
+  -- | Documentation metadata.
+  DocInfo ->
+  -- | Generated Swagger documentation.
+  Swagger
+generateSwagger _ apiProxy (DocInfo t v d) =
+  toSwagger apiProxy
     & info . title .~ (pack t)
     & info . version .~ (pack v)
     & info . description ?~ (pack d)
     & info . license ?~ ("BSD 3.0" & url ?~ URL "https://opensource.org/licenses/BSD-3-Clause")
 
-type EntityAPI a =
-  "entity_name_and_time"
-    :> Summary "get entity name and the current time"
-    :> Get '[PlainText] String
-    :<|> "entity_name_map"
-      :> Summary "name id mapping"
-      :> Get '[JSON] Cache.NameIdMapping
-    :<|> "entity_id_by_name"
-      :> Summary "retrieve entity id by name"
-      :> QueryParam' '[Required, Desc String "entity name"] "name" String
-      :> Get '[JSON] Id
-    :<|> "entity"
-      :> Summary "retrieve entity identified by :id"
-      :> Capture' '[Desc Id "unique identifier"] ":id" Id
-      :> Get '[JSON] a
-    :<|> "entity_by_name"
-      :> Summary "retrieve entity by name"
-      :> QueryParam' '[Required, Desc String "entity name"] "name" String
-      :> Get '[JSON] a
-    :<|> "entity_all"
-      :> Summary "retrieve all entities"
-      :> Get '[JSON] [a]
-    :<|> "entity"
-      :> Summary "store a new entity"
-      :> ReqBody '[JSON] (Entity.EntityInput a)
-      :> Post '[JSON] a
-    :<|> "entity"
-      :> Summary "modify an existing entity"
-      :> Capture' '[Desc Id "unique identifier"] ":id" Id
-      :> ReqBody '[JSON] (Entity.EntityInput a)
-      :> Put '[JSON] a
-    :<|> "entity_by_name"
-      :> Summary "modify an existing entity by name"
-      :> QueryParam' '[Required, Desc String "entity name"] "name" String
-      :> ReqBody '[JSON] (Entity.EntityInput a)
-      :> Put '[JSON] a
-    :<|> "entity"
-      :> Summary "delete an existing entity"
-      :> Capture' '[Desc Id "unique identifier"] ":id" Id
-      :> Delete '[JSON] a
-    :<|> "entity_by_name"
-      :> Summary "delete an existing entity by name"
-      :> QueryParam' '[Required, Desc String "entity name"] "name" String
-      :> Delete '[JSON] a
-
+-- | 'entityServer' creates the server for the 'EntityAPI' for a given entity.
 entityServer ::
-  (Service.EntityService a) =>
-  Proxy a ->
-  Cache.EntityCacheStore a ->
-  Server (EntityAPI a)
-entityServer p ecs =
+  forall name entity.
+  (Service.EntityService entity, KnownSymbol name) =>
+  -- | Proxy for the entity name prefix.
+  Proxy name ->
+  -- | Proxy for the entity type.
+  Proxy entity ->
+  -- | Cache store for the entity.
+  Cache.EntityCacheStore entity ->
+  -- | Server for the 'EntityAPI'.
+  Server (EntityAPI name entity)
+entityServer _ p ecs =
   Service.getEntityNameAndTime p
     :<|> Service.getEntityNameMap ecs
     :<|> Service.getEntityIdByName ecs
@@ -115,24 +85,24 @@ entityServer p ecs =
     :<|> Service.deleteEntity ecs
     :<|> Service.deleteEntityByName ecs
 
--- A combined function works like below
-{-
-  let userType = Proxy :: Proxy User
-      entityApi = Proxy :: Proxy (EntityAPI User)
-      api = Proxy :: Proxy (API User)
-      sd = swaggerDoc entityApi docInfo
-      es = entityServer userType store
-      ss = swaggerSchemaUIServer sd :<|> es :: Server (API User)
-      app' = serve api ss
-
-  run 8080 app'
--}
+-- | 'swaggerServer' combines the Swagger documentation with the 'EntityAPI' server.
+-- It serves both the API and its Swagger documentation.
 swaggerServer ::
-  (Service.EntityService a, HasSwagger (EntityAPI a)) =>
-  Proxy a ->
-  Proxy (EntityAPI a) ->
+  forall name entity.
+  (Service.EntityService entity, KnownSymbol name, HasSwagger (EntityAPI name entity)) =>
+  -- | Proxy for the entity name prefix.
+  Proxy name ->
+  -- | Proxy for the entity type.
+  Proxy entity ->
+  -- | Proxy for the 'EntityAPI' type.
+  Proxy (EntityAPI name entity) ->
+  -- | Documentation metadata.
   DocInfo ->
-  Cache.EntityCacheStore a ->
-  Server (API a)
-swaggerServer p pe di ecs =
-  swaggerSchemaUIServer (swaggerDoc pe di) :<|> (entityServer p ecs)
+  -- | Cache store for the entity.
+  Cache.EntityCacheStore entity ->
+  -- | Combined server for the Swagger and 'EntityAPI'.
+  Server (EntitySwaggerAPI name entity)
+swaggerServer entityProxy entityApiProxy apiProxy docInfo cacheStore =
+  let swaggerDoc = generateSwagger entityProxy apiProxy docInfo
+      entityApiServer = entityServer entityProxy entityApiProxy cacheStore
+   in swaggerSchemaUIServer swaggerDoc :<|> entityApiServer

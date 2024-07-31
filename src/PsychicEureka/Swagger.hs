@@ -9,12 +9,7 @@
 
 module PsychicEureka.Swagger
   ( launch,
-    DocInfo (..),
-    API,
-    EntityAPI,
-    swaggerServer,
-    entityServer,
-    swaggerDoc,
+    module PsychicEureka.Swagger.Schema,
   )
 where
 

@@ -1,7 +1,8 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 -- file: UserServer.hs
@@ -24,6 +25,7 @@ import PsychicEureka.Entity (Entity (..), NameEntity (getName))
 import PsychicEureka.Service (EntityService)
 import PsychicEureka.Swagger
 import Servant (Proxy (..), serve)
+import Servant.Server (Server)
 
 ----------------------------------------------------------------------------------------------------
 
@@ -114,23 +116,35 @@ instance Entity User where
         }
 
 ----------------------------------------------------------------------------------------------------
+
+-- "user" swagger
+type UserEntityAPI = EntityAPI "user" User
+
+type UserSwaggerAPI = EntitySwaggerAPI "user" User
+
+userServer :: EntityCacheStore User -> Server UserSwaggerAPI
+userServer = swaggerServer entityProxy entityApiProxy apiProxy docInfo
+  where
+    entityProxy = Proxy @"user"
+    entityApiProxy = Proxy @User
+    apiProxy = Proxy @UserEntityAPI
+    docInfo = DocInfo {docVersion = "0.1", docTitle = "UserServer", docDescription = "test lib:psychic-eureka"}
+
+----------------------------------------------------------------------------------------------------
 -- Main
 ----------------------------------------------------------------------------------------------------
 
 main :: IO ()
 main = do
   let prt = 8080 :: Int
-      docInfo = DocInfo {docVersion = "0.1", docTitle = "UserServer", docDescription = "test lib:psychic-eureka"}
 
   store <- initialize :: IO (EntityCacheStore User)
   -- open browser
   -- _ <- launch prt
 
-  let userType = Proxy :: Proxy User
-      entityApi = Proxy :: Proxy (EntityAPI User)
-      api = Proxy :: Proxy (API User)
-      ss = swaggerServer userType entityApi docInfo store
-      app' = serve api ss
+  printApiInfo (Proxy @UserEntityAPI)
+
+  let app' = serve (Proxy @UserSwaggerAPI) (userServer store)
 
   putStrLn $ "Starting server on port " <> show prt
 
