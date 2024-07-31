@@ -10,8 +10,9 @@
 -- date: 2024/07/27 16:22:36 Saturday
 -- brief:
 
-module PsychicEureka.Swagger.Schema
-  ( EntityAPI,
+module PsychicEureka.Swagger.Gen
+  ( Desc,
+    EntityAPI,
     EntitySwaggerAPI,
     DocInfo (..),
     generateSwagger,
@@ -59,6 +60,14 @@ generateSwagger _ apiProxy (DocInfo t v d) =
     & info . version .~ (pack v)
     & info . description ?~ (pack d)
     & info . license ?~ ("BSD 3.0" & url ?~ URL "https://opensource.org/licenses/BSD-3-Clause")
+
+----------------------------------------------------------------------------------------------------
+-- entityServer & swaggerServer
+--
+-- the minimum use case of the `EntityAPI`.
+-- In the real world application, we need complex APIs, so multiple `EntityAPI`s and custom APIs
+-- should be seen.
+----------------------------------------------------------------------------------------------------
 
 -- | 'entityServer' creates the server for the 'EntityAPI' for a given entity.
 entityServer ::

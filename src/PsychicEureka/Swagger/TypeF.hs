@@ -12,7 +12,8 @@
 -- brief:
 
 module PsychicEureka.Swagger.TypeF
-  ( EntityAPI,
+  ( Desc,
+    EntityAPI,
     EntitySwaggerAPI,
     printApiInfo,
   )
@@ -44,59 +45,16 @@ type Desc t n = Description (AppendSymbol (TypeName t) (AppendSymbol " | " n))
 ----------------------------------------------------------------------------------------------------
 -- API
 
+-- | Type family to concatenate two type-level symbols.
 type family (:<>:) (s1 :: Symbol) (s2 :: Symbol) :: Symbol where
   s1 :<>: s2 = AppendSymbol s1 s2
 
-{-
-type EntityAPI a =
-  "entity_name_and_time"
-    :> Summary "get entity name and the current time"
-    :> Get '[PlainText] String
-    :<|> "entity_name_map"
-      :> Summary "name id mapping"
-      :> Get '[JSON] Cache.NameIdMapping
-    :<|> "entity_id_by_name"
-      :> Summary "retrieve entity id by name"
-      :> QueryParam' '[Required, Desc String "entity name"] "name" String
-      :> Get '[JSON] Id
-    :<|> "entity"
-      :> Summary "retrieve entity identified by :id"
-      :> Capture' '[Desc Id "unique identifier"] ":id" Id
-      :> Get '[JSON] a
-    :<|> "entity_by_name"
-      :> Summary "retrieve entity by name"
-      :> QueryParam' '[Required, Desc String "entity name"] "name" String
-      :> Get '[JSON] a
-    :<|> "entity_all"
-      :> Summary "retrieve all entities"
-      :> Get '[JSON] [a]
-    :<|> "entity"
-      :> Summary "store a new entity"
-      :> ReqBody '[JSON] (Entity.EntityInput a)
-      :> Post '[JSON] a
-    :<|> "entity"
-      :> Summary "modify an existing entity"
-      :> Capture' '[Desc Id "unique identifier"] ":id" Id
-      :> ReqBody '[JSON] (Entity.EntityInput a)
-      :> Put '[JSON] a
-    :<|> "entity_by_name"
-      :> Summary "modify an existing entity by name"
-      :> QueryParam' '[Required, Desc String "entity name"] "name" String
-      :> ReqBody '[JSON] (Entity.EntityInput a)
-      :> Put '[JSON] a
-    :<|> "entity"
-      :> Summary "delete an existing entity"
-      :> Capture' '[Desc Id "unique identifier"] ":id" Id
-      :> Delete '[JSON] a
-    :<|> "entity_by_name"
-      :> Summary "delete an existing entity by name"
-      :> QueryParam' '[Required, Desc String "entity name"] "name" String
-      :> Delete '[JSON] a
--}
+-- | Type family to define the API for an entity.
+-- The API includes various endpoints for CRUD operations and more.
 type family EntityAPI (name :: Symbol) a where
   EntityAPI name a =
-    (name :<>: "_name_and_time")
-      :> Summary ("get " :<>: name :<>: " name and the current time")
+    (name :<>: "_entity_info")
+      :> Summary ("get entity name and the current time")
       :> Get '[PlainText] String
       :<|> (name :<>: "_name_map")
         :> Summary (name :<>: " name id mapping")
@@ -139,6 +97,8 @@ type family EntityAPI (name :: Symbol) a where
         :> QueryParam' '[Required, Desc String (name :<>: " name")] "name" String
         :> Delete '[JSON] a
 
+-- | Type family to define the combined Swagger and entity API.
+-- This includes the Swagger UI endpoint and the 'EntityAPI' endpoints.
 type family EntitySwaggerAPI (name :: Symbol) a where
   EntitySwaggerAPI name a = SwaggerSchemaUI "swagger-ui" "swagger.json" :<|> EntityAPI name a
 
