@@ -30,8 +30,8 @@ library
 
   other-modules:
     PsychicEureka.Error
-    PsychicEureka.Swagger.Description
     PsychicEureka.Swagger.Schema
+    PsychicEureka.Swagger.TypeF
     PsychicEureka.Util
 
   build-depends:

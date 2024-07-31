@@ -25,7 +25,7 @@ import Data.Text (pack)
 import qualified PsychicEureka.Cache as Cache
 import qualified PsychicEureka.Entity as Entity
 import qualified PsychicEureka.Service as Service
-import PsychicEureka.Swagger.Description (Desc)
+import PsychicEureka.Swagger.TypeF (Desc)
 import PsychicEureka.Util (Id)
 import Servant
 import Servant.Swagger (HasSwagger (toSwagger))
@@ -53,7 +53,9 @@ swaggerDoc customAPI (DocInfo t v d) =
     & info . license ?~ ("BSD 3.0" & url ?~ URL "https://opensource.org/licenses/BSD-3-Clause")
 
 type EntityAPI a =
-  "entity_name_and_time" :> Summary "get entity name and the current time" :> Get '[PlainText] String
+  "entity_name_and_time"
+    :> Summary "get entity name and the current time"
+    :> Get '[PlainText] String
     :<|> "entity_name_map"
       :> Summary "name id mapping"
       :> Get '[JSON] Cache.NameIdMapping
