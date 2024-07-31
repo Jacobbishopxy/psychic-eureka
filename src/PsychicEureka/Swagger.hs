@@ -9,7 +9,6 @@
 
 module PsychicEureka.Swagger
   ( launch,
-    app,
     DocInfo (..),
     API,
     EntityAPI,
@@ -20,11 +19,7 @@ module PsychicEureka.Swagger
 where
 
 import GHC.IO.Handle (Handle)
-import qualified PsychicEureka.Cache as Cache
-import qualified PsychicEureka.Service as Service
 import PsychicEureka.Swagger.Schema
-import Servant (Application, HasServer, Proxy (..), serve)
-import Servant.Swagger (HasSwagger)
 import System.Info (os)
 import System.Process (ProcessHandle, createProcess, shell)
 
@@ -36,11 +31,3 @@ launch p =
     _ -> createProcess (shell $ "xdg-open " ++ u)
   where
     u = "http://localhost:" <> show p <> "/swagger-ui"
-
-app ::
-  (Service.EntityService a, HasSwagger a, HasServer (API a) '[]) =>
-  Proxy a ->
-  DocInfo ->
-  Cache.EntityCacheStore a ->
-  Application
-app p di ecs = serve (Proxy :: Proxy (API a)) (swaggerServer p di ecs)

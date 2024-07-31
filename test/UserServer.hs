@@ -23,8 +23,7 @@ import PsychicEureka.Cache (EntityCache (initialize), EntityCacheStore)
 import PsychicEureka.Entity (Entity (..), NameEntity (getName))
 import PsychicEureka.Service (EntityService)
 import PsychicEureka.Swagger
-import Servant (Proxy (..), Server, serve, type (:<|>) ((:<|>)))
-import Servant.Swagger.UI (swaggerSchemaUIServer)
+import Servant (Proxy (..), serve)
 
 ----------------------------------------------------------------------------------------------------
 
@@ -129,10 +128,9 @@ main = do
 
   let userType = Proxy :: Proxy User
       entityApi = Proxy :: Proxy (EntityAPI User)
-      sd = swaggerDoc entityApi docInfo
-      es = entityServer userType store
-      ss = swaggerSchemaUIServer sd :<|> es :: Server (API User)
-      app' = serve (Proxy :: Proxy (API User)) ss
+      api = Proxy :: Proxy (API User)
+      ss = swaggerServer userType entityApi docInfo store
+      app' = serve api ss
 
   putStrLn $ "Starting server on port " <> show prt
 

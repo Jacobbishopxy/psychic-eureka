@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -40,6 +42,8 @@ data DocInfo = DocInfo
     docDescription :: String
   }
 
+-- customAPI has to be a proxy which satisfies function `entityServer`'s return type
+-- e.g.: `Proxy :: Proxy (EntityAPI MyData)`
 swaggerDoc :: (HasSwagger api) => Proxy api -> DocInfo -> Swagger
 swaggerDoc customAPI (DocInfo t v d) =
   toSwagger customAPI
@@ -109,11 +113,24 @@ entityServer p ecs =
     :<|> Service.deleteEntity ecs
     :<|> Service.deleteEntityByName ecs
 
+-- A combined function works like below
+{-
+  let userType = Proxy :: Proxy User
+      entityApi = Proxy :: Proxy (EntityAPI User)
+      api = Proxy :: Proxy (API User)
+      sd = swaggerDoc entityApi docInfo
+      es = entityServer userType store
+      ss = swaggerSchemaUIServer sd :<|> es :: Server (API User)
+      app' = serve api ss
+
+  run 8080 app'
+-}
 swaggerServer ::
-  (Service.EntityService a, HasSwagger a) =>
+  (Service.EntityService a, HasSwagger (EntityAPI a)) =>
   Proxy a ->
+  Proxy (EntityAPI a) ->
   DocInfo ->
   Cache.EntityCacheStore a ->
   Server (API a)
-swaggerServer p di ecs =
-  swaggerSchemaUIServer (swaggerDoc p di) :<|> (entityServer p ecs)
+swaggerServer p pe di ecs =
+  swaggerSchemaUIServer (swaggerDoc pe di) :<|> (entityServer p ecs)
