@@ -54,9 +54,9 @@ type family (:<>:) (s1 :: Symbol) (s2 :: Symbol) :: Symbol where
 -- The API includes various endpoints for CRUD operations and more.
 type family EntityAPI (name :: Symbol) a where
   EntityAPI name a =
-    -- /name/entity_info
+    -- /name/info
     name
-      :> "entity_info"
+      :> "info"
       :> Summary ("get " :<>: name :<>: " name and the current time")
       :> Get '[PlainText] String
       -- /name/name_map

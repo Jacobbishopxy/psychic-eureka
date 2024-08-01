@@ -1,4 +1,3 @@
--- {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -40,27 +39,28 @@ import Servant.Swagger.UI (swaggerSchemaUIServer)
 data DocInfo = DocInfo
   { docTitle :: String,
     docVersion :: String,
-    docDescription :: String
+    docDescription :: String,
+    docTag :: String,
+    docTagDescription :: Maybe String
   }
 
 -- | 'generateSwagger' generates the Swagger documentation for a given 'EntityAPI'.
 -- It uses the provided 'DocInfo' to fill in the metadata.
 generateSwagger ::
   (HasSwagger (EntityAPI entity a), KnownSymbol entity) =>
-  -- | Proxy for the entity prefix.
-  Proxy entity ->
   -- | Proxy for the 'EntityAPI' type.
   Proxy (EntityAPI entity a) ->
   -- | Documentation metadata.
   DocInfo ->
   -- | Generated Swagger documentation.
   Swagger
-generateSwagger _ apiProxy (DocInfo t v d) =
+generateSwagger apiProxy (DocInfo t v d tg tgd) =
   toSwagger apiProxy
     & info . title .~ (pack t)
     & info . version .~ (pack v)
     & info . description ?~ (pack d)
     & info . license ?~ ("BSD 3.0" & url ?~ URL "https://opensource.org/licenses/BSD-3-Clause")
+    & applyTags [Tag (pack tg) (pack <$> tgd) Nothing]
 
 ----------------------------------------------------------------------------------------------------
 -- entityServer & swaggerServer
@@ -113,6 +113,18 @@ swaggerServer ::
   -- | Combined server for the Swagger and 'EntityAPI'.
   Server (EntitySwaggerAPI name entity)
 swaggerServer entityProxy entityApiProxy apiProxy docInfo cacheStore =
-  let swaggerDoc = generateSwagger entityProxy apiProxy docInfo
+  let swaggerDoc = generateSwagger apiProxy docInfo
       entityApiServer = entityServer entityProxy entityApiProxy cacheStore
    in swaggerSchemaUIServer swaggerDoc :<|> entityApiServer
+
+-- e.g.:
+{-
+  swaggerDoc :: Swagger
+  swaggerDoc = generateSwagger apiProxy docInfo
+
+  entityApiServer :: EntityCacheStore User -> Server UserEntityAPI
+  entityApiServer = entityServer entityProxy entityApiProxy
+
+  userServer :: EntityCacheStore User -> Server UserSwaggerAPI
+  userServer s = swaggerSchemaUIServer swaggerDoc :<|> entityApiServer s
+-}

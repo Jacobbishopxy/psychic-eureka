@@ -11,3 +11,6 @@ cradle:
 
     - path: "test/UserServer.hs"
       component: "psychic-eureka:test:test-user-server"
+
+    - path: "test/SwaggerTags.hs"
+      component: "psychic-eureka:test:test-swagger-tags"

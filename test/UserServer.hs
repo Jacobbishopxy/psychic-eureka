@@ -128,9 +128,16 @@ userServer :: EntityCacheStore User -> Server UserSwaggerAPI
 userServer = swaggerServer entityProxy entityApiProxy apiProxy docInfo
   where
     entityProxy = Proxy @"user"
-    entityApiProxy = Proxy @User
     apiProxy = Proxy @UserEntityAPI
-    docInfo = DocInfo {docVersion = "0.1", docTitle = "UserServer", docDescription = "test lib:psychic-eureka"}
+    entityApiProxy = Proxy @User
+    docInfo =
+      DocInfo
+        { docVersion = "0.1",
+          docTitle = "UserServer",
+          docDescription = "test lib:psychic-eureka",
+          docTag = "users",
+          docTagDescription = Just "users operations"
+        }
 
 ----------------------------------------------------------------------------------------------------
 -- Main
