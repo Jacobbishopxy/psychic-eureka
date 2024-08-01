@@ -135,8 +135,7 @@ userServer = swaggerServer entityProxy entityApiProxy apiProxy docInfo
         { docVersion = "0.1",
           docTitle = "UserServer",
           docDescription = "test lib:psychic-eureka",
-          docTag = "users",
-          docTagDescription = Just "users operations"
+          docTag = Just ("users", "users operations")
         }
 
 ----------------------------------------------------------------------------------------------------

@@ -40,27 +40,24 @@ data DocInfo = DocInfo
   { docTitle :: String,
     docVersion :: String,
     docDescription :: String,
-    docTag :: String,
-    docTagDescription :: Maybe String
+    docTag :: Maybe (String, String)
   }
 
--- | 'generateSwagger' generates the Swagger documentation for a given 'EntityAPI'.
--- It uses the provided 'DocInfo' to fill in the metadata.
 generateSwagger ::
-  (HasSwagger (EntityAPI entity a), KnownSymbol entity) =>
-  -- | Proxy for the 'EntityAPI' type.
-  Proxy (EntityAPI entity a) ->
-  -- | Documentation metadata.
+  (HasSwagger a) =>
+  Proxy a ->
   DocInfo ->
-  -- | Generated Swagger documentation.
   Swagger
-generateSwagger apiProxy (DocInfo t v d tg tgd) =
-  toSwagger apiProxy
-    & info . title .~ (pack t)
-    & info . version .~ (pack v)
-    & info . description ?~ (pack d)
-    & info . license ?~ ("BSD 3.0" & url ?~ URL "https://opensource.org/licenses/BSD-3-Clause")
-    & applyTags [Tag (pack tg) (pack <$> tgd) Nothing]
+generateSwagger apiProxy (DocInfo t v d mt) =
+  let swg =
+        toSwagger apiProxy
+          & info . title .~ (pack t)
+          & info . version .~ (pack v)
+          & info . description ?~ (pack d)
+          & info . license ?~ ("BSD 3.0" & url ?~ URL "https://opensource.org/licenses/BSD-3-Clause")
+   in case mt of
+        Just (tag, tagDesc) -> swg & applyTags [Tag (pack tag) (Just $ pack tagDesc) Nothing]
+        Nothing -> swg
 
 ----------------------------------------------------------------------------------------------------
 -- entityServer & swaggerServer
