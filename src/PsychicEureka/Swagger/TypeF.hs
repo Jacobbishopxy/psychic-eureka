@@ -14,6 +14,7 @@
 module PsychicEureka.Swagger.TypeF
   ( Desc,
     EntityAPI,
+    SwaggerAPI,
     EntitySwaggerAPI,
     printApiInfo,
   )
@@ -100,7 +101,10 @@ type family EntityAPI (name :: Symbol) a where
 -- | Type family to define the combined Swagger and entity API.
 -- This includes the Swagger UI endpoint and the 'EntityAPI' endpoints.
 type family EntitySwaggerAPI (name :: Symbol) a where
-  EntitySwaggerAPI name a = SwaggerSchemaUI "swagger-ui" "swagger.json" :<|> EntityAPI name a
+  EntitySwaggerAPI name a = SwaggerAPI :<|> EntityAPI name a
+
+-- default swagger API
+type SwaggerAPI = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
 ----------------------------------------------------------------------------------------------------
 

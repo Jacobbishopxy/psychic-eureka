@@ -10,11 +10,13 @@
 module PsychicEureka.Swagger
   ( launch,
     module PsychicEureka.Swagger.Gen,
+    module PsychicEureka.Swagger.Schema,
   )
 where
 
 import GHC.IO.Handle (Handle)
 import PsychicEureka.Swagger.Gen
+import PsychicEureka.Swagger.Schema
 import System.Info (os)
 import System.Process (ProcessHandle, createProcess, shell)
 

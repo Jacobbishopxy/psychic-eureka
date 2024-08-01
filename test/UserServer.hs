@@ -13,8 +13,20 @@
 module Main where
 
 import Control.Lens (mapped, (&), (?~))
-import Data.Aeson (FromJSON (parseJSON), KeyValue ((.=)), ToJSON (toJSON), object, withObject, (.:))
-import Data.Swagger (HasDescription (description), HasExample (example), SchemaOptions (..), ToSchema, declareNamedSchema, defaultSchemaOptions, fieldLabelModifier, genericDeclareNamedSchema)
+import Data.Aeson
+  ( FromJSON (parseJSON),
+    ToJSON (toJSON),
+    genericParseJSON,
+    genericToJSON,
+  )
+import Data.Swagger
+  ( HasDescription (description),
+    HasExample (example),
+    ToSchema,
+    declareNamedSchema,
+    defaultSchemaOptions,
+    genericDeclareNamedSchema,
+  )
 import Data.Swagger.Lens (HasSchema (..))
 import Data.Time (UTCTime, getCurrentTime)
 import GHC.Generics (Generic)
@@ -30,33 +42,23 @@ import Servant.Server (Server)
 ----------------------------------------------------------------------------------------------------
 
 data UserInput = UserInput
-  { name_ :: String,
-    email_ :: String,
-    password_ :: String
+  { _name :: String,
+    _email :: String,
+    _password :: String
   }
   deriving (Generic)
 
 instance FromJSON UserInput where
-  parseJSON = withObject "UserInput" $ \v ->
-    UserInput <$> v .: "name" <*> v .: "email" <*> v .: "password"
+  parseJSON = genericParseJSON jsonOptDropLeadingUnderscore
 
 instance ToJSON UserInput where
-  toJSON (UserInput n e p) =
-    object ["name" .= n, "email" .= e, "password" .= p]
+  toJSON = genericToJSON jsonOptDropLeadingUnderscore
 
 instance ToSchema UserInput where
   declareNamedSchema proxy =
-    genericDeclareNamedSchema schemaOptions proxy
+    genericDeclareNamedSchema swaggerScmDropLeadingUnderscore proxy
       & mapped . schema . description ?~ "Used for create/modify a User"
       & mapped . schema . example ?~ toJSON (UserInput "Jacob" "jacob@prod.com" "123456")
-    where
-      schemaOptions =
-        defaultSchemaOptions
-          { fieldLabelModifier = dropTrailingUnderscore
-          }
-
-dropTrailingUnderscore :: String -> String
-dropTrailingUnderscore = reverse . dropWhile (== '_') . reverse
 
 data User = User
   { uid :: Id,
@@ -78,7 +80,7 @@ instance ToSchema User where
 -- impl
 
 instance NameEntity UserInput where
-  getName = name_
+  getName = _name
 
 instance NameEntity User where
   getName = name
@@ -98,9 +100,9 @@ instance Entity User where
     return
       User
         { uid = id',
-          name = name_ ui,
-          email = email_ ui,
-          password = password_ ui,
+          name = _name ui,
+          email = _email ui,
+          password = _password ui,
           created_time = t,
           modified_time = t
         }
@@ -109,9 +111,9 @@ instance Entity User where
     t <- getCurrentTime
     return
       u
-        { name = name_ ui,
-          email = email_ ui,
-          password = password_ ui,
+        { name = _name ui,
+          email = _email ui,
+          password = _password ui,
           modified_time = t
         }
 
@@ -141,11 +143,9 @@ main = do
   store <- initialize :: IO (EntityCacheStore User)
   -- open browser
   -- _ <- launch prt
-
-  printApiInfo (Proxy @UserEntityAPI)
+  -- printApiInfo (Proxy @UserEntityAPI)
 
   let app' = serve (Proxy @UserSwaggerAPI) (userServer store)
-
   putStrLn $ "Starting server on port " <> show prt
 
   run prt app'

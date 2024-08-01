@@ -31,6 +31,7 @@ library
   other-modules:
     PsychicEureka.Error
     PsychicEureka.Swagger.Gen
+    PsychicEureka.Swagger.Schema
     PsychicEureka.Swagger.TypeF
     PsychicEureka.Util
 

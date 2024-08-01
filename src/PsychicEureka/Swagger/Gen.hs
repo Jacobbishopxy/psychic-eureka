@@ -13,6 +13,7 @@
 module PsychicEureka.Swagger.Gen
   ( Desc,
     EntityAPI,
+    SwaggerAPI,
     EntitySwaggerAPI,
     DocInfo (..),
     generateSwagger,
