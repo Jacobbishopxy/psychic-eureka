@@ -54,46 +54,64 @@ type family (:<>:) (s1 :: Symbol) (s2 :: Symbol) :: Symbol where
 -- The API includes various endpoints for CRUD operations and more.
 type family EntityAPI (name :: Symbol) a where
   EntityAPI name a =
-    (name :<>: "_entity_info")
-      :> Summary ("get entity name and the current time")
+    -- /name/entity_info
+    name
+      :> "entity_info"
+      :> Summary ("get " :<>: name :<>: " name and the current time")
       :> Get '[PlainText] String
-      :<|> (name :<>: "_name_map")
+      -- /name/name_map
+      :<|> name
+        :> "name_map"
         :> Summary (name :<>: " name id mapping")
         :> Get '[JSON] Cache.NameIdMapping
-      :<|> (name :<>: "_id_by_name")
+      -- /name/id_by_name
+      :<|> name
+        :> "id_by_name"
         :> Summary ("retrieve " :<>: name :<>: " id by name")
         :> QueryParam' '[Required, Desc String (name :<>: " name")] "name" String
         :> Get '[JSON] Id
+      -- /name/{:id}
       :<|> name
-        :> Summary ("retrieve " :<>: name :<>: " identified by :id")
         :> Capture' '[Desc Id "unique identifier"] ":id" Id
+        :> Summary ("retrieve " :<>: name :<>: " identified by :id")
         :> Get '[JSON] a
-      :<|> (name :<>: "_by_name")
+      -- /name/by_name
+      :<|> name
+        :> "by_name"
         :> Summary ("retrieve " :<>: name :<>: " by name")
         :> QueryParam' '[Required, Desc String (name :<>: " name")] "name" String
         :> Get '[JSON] a
-      :<|> (name :<>: "_all")
+      -- /name/all
+      :<|> name
+        :> "all"
         :> Summary ("retrieve all " :<>: name)
         :> Get '[JSON] [a]
+      -- /name
       :<|> name
         :> Summary ("store a new " :<>: name)
         :> ReqBody '[JSON] (Entity.EntityInput a)
         :> Post '[JSON] a
+      -- /name/{:id}
       :<|> name
-        :> Summary ("modify an existing " :<>: name)
         :> Capture' '[Desc Id "unique identifier"] ":id" Id
+        :> Summary ("modify an existing " :<>: name)
         :> ReqBody '[JSON] (Entity.EntityInput a)
         :> Put '[JSON] a
-      :<|> (name :<>: "_by_name")
+      -- /name/by_name
+      :<|> name
+        :> "by_name"
         :> Summary ("modify an existing " :<>: name :<>: " by name")
         :> QueryParam' '[Required, Desc String (name :<>: " name")] "name" String
         :> ReqBody '[JSON] (Entity.EntityInput a)
         :> Put '[JSON] a
+      -- /name/{:id}
       :<|> name
-        :> Summary ("delete an existing " :<>: name)
         :> Capture' '[Desc Id "unique identifier"] ":id" Id
+        :> Summary ("delete an existing " :<>: name)
         :> Delete '[JSON] a
-      :<|> (name :<>: "_by_name")
+      -- /name/by_name
+      :<|> name
+        :> "by_name"
         :> Summary ("delete an existing " :<>: name :<>: " by name")
         :> QueryParam' '[Required, Desc String (name :<>: " name")] "name" String
         :> Delete '[JSON] a
