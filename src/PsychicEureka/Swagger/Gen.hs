@@ -15,6 +15,7 @@ module PsychicEureka.Swagger.Gen
     SwaggerAPI,
     EntitySwaggerAPI,
     DocInfo (..),
+    generateSimpleSwagger,
     generateSwagger,
     entityServer,
     swaggerServer,
@@ -37,26 +38,43 @@ import Servant.Swagger.UI (swaggerSchemaUIServer)
 
 -- | 'DocInfo' represents the documentation metadata for the Swagger documentation.
 data DocInfo = DocInfo
-  { docTitle :: String,
+  { -- | Title of the API documentation.
+    docTitle :: String,
+    -- | Version of the API.
     docVersion :: String,
+    -- | Description of the API.
     docDescription :: String,
+    -- | Optional tag and tag description for categorizing operations.
     docTag :: Maybe (String, String)
   }
 
-generateSwagger ::
+generateSimpleSwagger ::
   (HasSwagger a) =>
   Proxy a ->
+  (String, String) ->
+  Swagger
+generateSimpleSwagger apiProxy (tag, tagDesc) =
+  toSwagger apiProxy & applyTags [Tag (pack tag) (Just $ pack tagDesc) Nothing]
+
+generateSwagger ::
+  (HasSwagger a) =>
+  -- | Proxy for the API type.
+  Proxy a ->
+  -- | Documentation metadata.
   DocInfo ->
+  -- | Generated Swagger documentation.
   Swagger
 generateSwagger apiProxy (DocInfo t v d mt) =
   let swg =
         toSwagger apiProxy
-          & info . title .~ (pack t)
-          & info . version .~ (pack v)
-          & info . description ?~ (pack d)
-          & info . license ?~ ("BSD 3.0" & url ?~ URL "https://opensource.org/licenses/BSD-3-Clause")
+          & info . title .~ pack t -- Set the title of the API.
+          & info . version .~ pack v -- Set the version of the API.
+          & info . description ?~ pack d -- Set the description of the API.
+          & info . license ?~ ("BSD 3.0" & url ?~ URL "https://opensource.org/licenses/BSD-3-Clause") -- Set the license information.
    in case mt of
+        -- If 'docTag' is provided, apply the tag to all operations.
         Just (tag, tagDesc) -> swg & applyTags [Tag (pack tag) (Just $ pack tagDesc) Nothing]
+        -- If 'docTag' is not provided, return the Swagger documentation as is.
         Nothing -> swg
 
 ----------------------------------------------------------------------------------------------------
