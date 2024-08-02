@@ -135,7 +135,7 @@ userServer = swaggerServer entityProxy entityApiProxy apiProxy docInfo
         { docVersion = "0.1",
           docTitle = "UserServer",
           docDescription = "test lib:psychic-eureka",
-          docTag = Just ("users", "users operations")
+          docTags = [("user", "user operations")]
         }
 
 ----------------------------------------------------------------------------------------------------
@@ -149,7 +149,7 @@ main = do
   store <- initialize :: IO (EntityCacheStore User)
   -- open browser
   -- _ <- launch prt
-  -- printApiInfo (Proxy @UserEntityAPI)
+  -- printApiInfo (Proxy @UserSwaggerAPI)
 
   let app' = serve (Proxy @UserSwaggerAPI) (userServer store)
   putStrLn $ "Starting server on port " <> show prt

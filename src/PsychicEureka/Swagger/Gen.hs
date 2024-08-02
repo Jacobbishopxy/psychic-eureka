@@ -44,8 +44,8 @@ data DocInfo = DocInfo
     docVersion :: String,
     -- | Description of the API.
     docDescription :: String,
-    -- | Optional tag and tag description for categorizing operations.
-    docTag :: Maybe (String, String)
+    -- | List of tags and their descriptions for categorizing operations.
+    docTags :: [(String, String)]
   }
 
 generateSimpleSwagger ::
@@ -64,18 +64,21 @@ generateSwagger ::
   DocInfo ->
   -- | Generated Swagger documentation.
   Swagger
-generateSwagger apiProxy (DocInfo t v d mt) =
+generateSwagger apiProxy (DocInfo t v d tg) =
   let swg =
         toSwagger apiProxy
           & info . title .~ pack t -- Set the title of the API.
           & info . version .~ pack v -- Set the version of the API.
           & info . description ?~ pack d -- Set the description of the API.
           & info . license ?~ ("BSD 3.0" & url ?~ URL "https://opensource.org/licenses/BSD-3-Clause") -- Set the license information.
-   in case mt of
-        -- If 'docTag' is provided, apply the tag to all operations.
-        Just (tag, tagDesc) -> swg & applyTags [Tag (pack tag) (Just $ pack tagDesc) Nothing]
-        -- If 'docTag' is not provided, return the Swagger documentation as is.
-        Nothing -> swg
+   in if not (null tg)
+        then applyTags' tg swg
+        else swg
+
+applyTags' :: [(String, String)] -> Swagger -> Swagger
+applyTags' tg swagger =
+  let newTags = [Tag (pack tag) (Just $ pack tagDesc) Nothing | (tag, tagDesc) <- tg]
+   in swagger & applyTags newTags
 
 ----------------------------------------------------------------------------------------------------
 -- entityServer & swaggerServer

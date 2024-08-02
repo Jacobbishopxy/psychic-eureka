@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
 import Control.Lens
@@ -11,6 +12,7 @@ import qualified Data.ByteString.Lazy.Char8 as BSL8
 import Data.Data
 import Data.Swagger
 import GHC.Generics (Generic)
+import PsychicEureka.Swagger (generateSimpleSwagger)
 import Servant
 import Servant.Swagger
 
@@ -47,10 +49,18 @@ swaggerDoc =
       (subOperations (Proxy :: Proxy PostUser) (Proxy :: Proxy UserAPI))
       ["post" & description ?~ "POST operations"]
 
+sd1 :: Swagger
+sd1 = generateSimpleSwagger (Proxy @GetUser) ("get", "GET ops")
+
+sd2 :: Swagger
+sd2 = generateSimpleSwagger (Proxy @PostUser) ("post", "POST ops")
+
 -- Function to print Swagger object
 printSwagger :: Swagger -> IO ()
 printSwagger swagger = BSL8.putStrLn $ encodePretty swagger
 
 main :: IO ()
 main = do
+  printSwagger $ sd1 <> sd2
+
   printSwagger swaggerDoc
