@@ -89,12 +89,11 @@ test-suite test-user-server
   ghc-options:      -threaded -rtsopts -with-rtsopts=-N
   build-depends:
     , aeson
-    , base                ^>=4.19.1.0
+    , base             ^>=4.19.1.0
     , lens
     , psychic-eureka
     , servant-server
     , servant-swagger
-    , servant-swagger-ui
     , swagger2
     , time
     , warp
@@ -109,14 +108,12 @@ test-suite test-swagger-tags
   build-depends:
     , aeson
     , aeson-pretty
-    , base                ^>=4.19.1.0
+    , base             ^>=4.19.1.0
     , bytestring
     , lens
     , psychic-eureka
     , servant-server
     , servant-swagger
-    , servant-swagger-ui
     , swagger2
-    , text
     , time
     , warp

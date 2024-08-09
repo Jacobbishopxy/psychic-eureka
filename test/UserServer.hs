@@ -22,12 +22,12 @@ import Data.Aeson
 import Data.Swagger
   ( HasDescription (description),
     HasExample (example),
+    HasSchema (schema),
     ToSchema,
     declareNamedSchema,
     defaultSchemaOptions,
     genericDeclareNamedSchema,
   )
-import Data.Swagger.Lens (HasSchema (..))
 import Data.Time (UTCTime, getCurrentTime)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (run)
@@ -77,7 +77,7 @@ instance ToSchema User where
       & mapped . schema . example ?~ toJSON (User mockId "JacobX" "xy@dev.com" "123456" mockUTCTime mockUTCTime)
 
 ----------------------------------------------------------------------------------------------------
--- impl
+-- impl PsychicEureka
 
 instance NameEntity UserInput where
   getName = _name
@@ -89,11 +89,8 @@ instance Entity User where
   type EntityInput User = UserInput
 
   getId = uid
-
   getCreatedTime = created_time
-
   getModifiedTime = modified_time
-
   createFromInput ui = do
     id' <- genId
     t <- getCurrentTime
@@ -106,7 +103,6 @@ instance Entity User where
           created_time = t,
           modified_time = t
         }
-
   modifyFromInput ui u = do
     t <- getCurrentTime
     return
