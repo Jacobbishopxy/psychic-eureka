@@ -20,7 +20,7 @@ import Data.Data (typeRep)
 import qualified PsychicEureka.Cache as Cache
 import qualified PsychicEureka.Entity as Entity
 import PsychicEureka.Error (EurekaError (..))
-import PsychicEureka.Util (Id, getNowString, id2str)
+import PsychicEureka.Util (Id, getNowString, id2str, str2ids, str2strs)
 import Servant
   ( Handler,
     Proxy,
@@ -43,6 +43,9 @@ class (Cache.EntityCache a) => EntityService a where
   getEntityNameMap :: Cache.EntityCacheStore a -> Handler Cache.NameIdMapping
   getEntityNameMap = liftIO . Cache.getNameMap
 
+  idExists :: Cache.EntityCacheStore a -> Id -> Handler Bool
+  idExists cs i = liftIO $ Cache.isIdInCache cs i
+
   getEntityIdByName :: Cache.EntityCacheStore a -> String -> Handler Id
   getEntityIdByName cs n =
     liftIO (try $ Cache.getIdByName cs n) >>= handleOutput
@@ -54,6 +57,18 @@ class (Cache.EntityCache a) => EntityService a where
   getEntityByName :: Cache.EntityCacheStore a -> String -> Handler a
   getEntityByName cs n =
     liftIO (try $ Cache.retrieveByName cs n) >>= handleOutput
+
+  getEntities :: Cache.EntityCacheStore a -> [Id] -> Handler [a]
+  getEntities cs is = liftIO $ Cache.retrieveMany cs is
+
+  getEntitiesByName :: Cache.EntityCacheStore a -> [String] -> Handler [a]
+  getEntitiesByName cs ns = liftIO $ Cache.retrieveManyByName cs ns
+
+  getEntities' :: Cache.EntityCacheStore a -> String -> Handler [a]
+  getEntities' cs s = liftIO $ Cache.retrieveMany cs (str2ids s)
+
+  getEntitiesByName' :: Cache.EntityCacheStore a -> String -> Handler [a]
+  getEntitiesByName' cs s = liftIO $ Cache.retrieveManyByName cs (str2strs s)
 
   getAllEntities :: Cache.EntityCacheStore a -> Handler [a]
   getAllEntities cs =

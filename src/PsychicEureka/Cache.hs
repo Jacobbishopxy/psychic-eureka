@@ -56,6 +56,10 @@ class (Entity.Entity a) => EntityCache a where
         Nothing -> throw $ EntityNotFound n
         Just i -> return i
 
+  getIdsByName :: EntityCacheStore a -> [String] -> IO [Id]
+  getIdsByName mvar n =
+    readMVar mvar >>= \(m, _) -> return $ mapMaybe (`Map.lookup` m) n
+
   -- get id by name, return `Maybe`
   -- (this function is used by the following functions;
   -- instead of throwing error, a `Maybe` type is more flexible
@@ -73,6 +77,10 @@ class (Entity.Entity a) => EntityCache a where
   -- retrieve many
   retrieveMany :: EntityCacheStore a -> [Id] -> IO [a]
   retrieveMany mvar is = (\(_, m) -> mapMaybe (`Map.lookup` m) is) <$> (readMVar mvar)
+
+  -- retrieve many by name
+  retrieveManyByName :: EntityCacheStore a -> [String] -> IO [a]
+  retrieveManyByName mvar ns = getIdsByName mvar ns >>= retrieveMany mvar
 
   -- retrieve all `a`s
   retrieveAll :: EntityCacheStore a -> IO [a]

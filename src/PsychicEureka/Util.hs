@@ -12,6 +12,8 @@ module PsychicEureka.Util
   ( Id,
     id2str,
     str2id,
+    str2ids,
+    str2strs,
     genId,
     mockId,
     mockUTCTime,
@@ -23,7 +25,7 @@ import Control.Lens ((&), (?~))
 import Data.Aeson (FromJSON (..), ToJSON (toJSON), withText)
 import Data.ByteString (toStrict)
 import Data.Data (Typeable)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, mapMaybe)
 import Data.Swagger (HasDescription (description), HasFormat (..), HasType (..), NamedSchema (..), SwaggerType (..), ToParamSchema, ToSchema (declareNamedSchema))
 import Data.Text (pack)
 import Data.Time (UTCTime (..), defaultTimeLocale, formatTime, fromGregorian, getCurrentTime)
@@ -97,3 +99,21 @@ mockUTCTime = UTCTime (fromGregorian 2024 7 15) 0
 
 getNowString :: IO String
 getNowString = getCurrentTime >>= return . formatTime defaultTimeLocale "%FT%T%QZ"
+
+str2ids :: String -> [Id]
+str2ids str = mapMaybe str2id names
+  where
+    -- Manually split the string by commas
+    names = splitByComma str
+
+str2strs :: String -> [String]
+str2strs = splitByComma
+
+-- Helper function to split a string by commas
+splitByComma :: String -> [String]
+splitByComma [] = []
+splitByComma s =
+  let (name, rest) = break (== ',') s
+   in name : case rest of
+        [] -> []
+        (_ : xs) -> splitByComma xs

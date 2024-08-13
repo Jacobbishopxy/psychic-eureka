@@ -103,9 +103,12 @@ entityServer ::
 entityServer _ p ecs =
   Service.getEntityNameAndTime p
     :<|> Service.getEntityNameMap ecs
+    :<|> Service.idExists ecs
     :<|> Service.getEntityIdByName ecs
     :<|> Service.getEntity ecs
     :<|> Service.getEntityByName ecs
+    :<|> Service.getEntities' ecs
+    :<|> Service.getEntitiesByName' ecs
     :<|> Service.getAllEntities ecs
     :<|> Service.postEntity ecs
     :<|> Service.putEntity ecs

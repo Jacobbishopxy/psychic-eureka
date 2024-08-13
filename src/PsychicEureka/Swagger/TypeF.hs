@@ -64,6 +64,12 @@ type family EntityAPI (name :: Symbol) a where
         :> "name_map"
         :> Summary (name :<>: " name id mapping")
         :> Get '[JSON] Cache.NameIdMapping
+      -- /name/id_exists/{:id}
+      :<|> name
+        :> "id_exists"
+        :> Capture' '[Desc Id "unique identifier"] ":id" Id
+        :> Summary ("check if " :<>: name :<>: " id exists")
+        :> Get '[JSON] Bool
       -- /name/id_by_name
       :<|> name
         :> "id_by_name"
@@ -81,6 +87,18 @@ type family EntityAPI (name :: Symbol) a where
         :> Summary ("retrieve " :<>: name :<>: " by name")
         :> QueryParam' '[Required, Desc String (name :<>: " name")] "name" String
         :> Get '[JSON] a
+      -- /name/many
+      :<|> name
+        :> "many"
+        :> Summary ("retrieve " :<>: name :<>: " by ids, split by comma")
+        :> QueryParam' '[Required, Desc [Id] (name :<>: " [id]")] "name" String
+        :> Get '[JSON] [a]
+      -- /name/many_by_name
+      :<|> name
+        :> "many_by_name"
+        :> Summary ("retrieve " :<>: name :<>: " by names, split by comma")
+        :> QueryParam' '[Required, Desc [String] (name :<>: " [name]")] "name" String
+        :> Get '[JSON] [a]
       -- /name/all
       :<|> name
         :> "all"

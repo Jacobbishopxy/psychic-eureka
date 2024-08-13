@@ -25,6 +25,7 @@ import Data.Swagger
     HasSchema (schema),
     ToSchema,
     declareNamedSchema,
+    defaultSchemaOptions,
     genericDeclareNamedSchema,
   )
 import Data.Time (UTCTime, getCurrentTime)
@@ -71,7 +72,7 @@ data User = User
 
 instance ToSchema User where
   declareNamedSchema proxy =
-    declareNamedSchema proxy
+    genericDeclareNamedSchema defaultSchemaOptions proxy
       & mapped . schema . description ?~ "This is a User API (tm)"
       & mapped . schema . example ?~ toJSON (User mockId "JacobX" "xy@dev.com" "123456" mockUTCTime mockUTCTime)
 
