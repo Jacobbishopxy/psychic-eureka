@@ -8,9 +8,12 @@
 module PsychicEureka.Error where
 
 import Control.Exception (Exception)
+import PsychicEureka.Util (Id)
 
 data EurekaError
   = EntityNotFound String
   | EntityAlreadyExists String
+  | IdNotFound Id
+  | IdAlreadyExists Id
   | InternalError String
   deriving (Show, Exception)

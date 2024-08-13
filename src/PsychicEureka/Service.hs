@@ -20,7 +20,7 @@ import Data.Data (typeRep)
 import qualified PsychicEureka.Cache as Cache
 import qualified PsychicEureka.Entity as Entity
 import PsychicEureka.Error (EurekaError (..))
-import PsychicEureka.Util (Id, getNowString)
+import PsychicEureka.Util (Id, getNowString, id2str)
 import Servant
   ( Handler,
     Proxy,
@@ -86,6 +86,8 @@ throwAsServerError ex =
   throwError $ case ex of
     EntityNotFound msg -> err404 {errBody = pack msg}
     EntityAlreadyExists msg -> err409 {errBody = pack msg}
+    IdNotFound i -> err404 {errBody = pack $ id2str i}
+    IdAlreadyExists i -> err409 {errBody = pack $ id2str i}
     InternalError msg -> err500 {errBody = pack msg}
 
 handleOutput :: Either EurekaError a -> Handler a

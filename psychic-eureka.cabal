@@ -29,6 +29,8 @@ library
     PsychicEureka.Swagger
 
   other-modules:
+    PsychicEureka.Biz.Common
+    PsychicEureka.Biz.OneToMany
     PsychicEureka.Error
     PsychicEureka.Swagger.Gen
     PsychicEureka.Swagger.Schema

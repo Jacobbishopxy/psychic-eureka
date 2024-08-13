@@ -16,6 +16,7 @@ where
 import Control.Concurrent (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
 import Control.Exception (throw)
 import qualified Data.Map as Map
+import Data.Maybe (mapMaybe)
 import qualified PsychicEureka.Entity as Entity
 import PsychicEureka.Error (EurekaError (..))
 import PsychicEureka.Util (Id)
@@ -43,6 +44,10 @@ class (Entity.Entity a) => EntityCache a where
   getNameMap :: EntityCacheStore a -> IO (Map.Map String Id)
   getNameMap mvar = readMVar mvar >>= return . fst
 
+  -- is id in cache store
+  isIdInCache :: EntityCacheStore a -> Id -> IO Bool
+  isIdInCache mvar i = readMVar mvar >>= \(_, m) -> return $ Map.member i m
+
   -- get id by name
   getIdByName :: EntityCacheStore a -> String -> IO Id
   getIdByName mvar n =
@@ -64,6 +69,10 @@ class (Entity.Entity a) => EntityCache a where
       case Map.lookup i m of
         Nothing -> throw $ EntityNotFound $ show i
         Just e -> return e
+
+  -- retrieve many
+  retrieveMany :: EntityCacheStore a -> [Id] -> IO [a]
+  retrieveMany mvar is = (\(_, m) -> mapMaybe (`Map.lookup` m) is) <$> (readMVar mvar)
 
   -- retrieve all `a`s
   retrieveAll :: EntityCacheStore a -> IO [a]
