@@ -14,3 +14,6 @@ cradle:
 
     - path: "test/SwaggerTags.hs"
       component: "psychic-eureka:test:test-swagger-tags"
+
+    - path: "test/O2M.hs"
+      component: "psychic-eureka:test:test-o2m"

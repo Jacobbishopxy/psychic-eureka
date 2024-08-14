@@ -23,6 +23,7 @@ library
   hs-source-dirs:   src
   exposed-modules:
     PsychicEureka
+    PsychicEureka.Biz
     PsychicEureka.Cache
     PsychicEureka.Entity
     PsychicEureka.Service
@@ -119,3 +120,16 @@ test-suite test-swagger-tags
     , swagger2
     , time
     , warp
+
+test-suite test-o2m
+  import:           warnings
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          O2M.hs
+  build-depends:
+    , aeson
+    , base            ^>=4.19.1.0
+    , bytestring
+    , psychic-eureka
+    , time
