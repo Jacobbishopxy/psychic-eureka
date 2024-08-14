@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -14,7 +15,7 @@ import Control.Concurrent (MVar, modifyMVar_, newMVar, readMVar)
 import Control.Exception (throw)
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe)
-import PsychicEureka.Biz.Common (RefEntity, getRef)
+import PsychicEureka.Biz.Common (RefEntity, attachRef, getRef)
 import qualified PsychicEureka.Cache as Cache
 import qualified PsychicEureka.Entity as Entity
 import PsychicEureka.Error (EurekaError (..))
@@ -36,7 +37,7 @@ data CacheOneToMany a b = CacheOneToMany
     refRelation :: RefRelation
   }
 
-class (Cache.EntityCache a, RefEntity b, Cache.EntityCache b) => OneToMany a b where
+class (Cache.EntityCache a, RefEntity (Entity.EntityInput b), RefEntity b, Cache.EntityCache b) => OneToMany a b where
   construct :: Cache.EntityCacheStore a -> Cache.EntityCacheStore b -> IO (CacheOneToMany a b)
   construct ca cb = do
     (_, ma) <- readMVar ca
@@ -89,7 +90,7 @@ class (Cache.EntityCache a, RefEntity b, Cache.EntityCache b) => OneToMany a b w
   saveRef c@(CacheOneToMany _ cb r) mi inp =
     isIdInKey c mi >>= \case
       True -> do
-        b <- Cache.save cb inp
+        b <- Cache.save cb (attachRef inp mi)
         let newRefId = Entity.getId b
         modifyMVar_ r $ \m ->
           let updatedVal = newRefId : (m Map.! mi)

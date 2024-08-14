@@ -9,3 +9,5 @@ import PsychicEureka.Util (Id)
 
 class RefEntity a where
   getRef :: a -> Maybe Id
+
+  attachRef :: a -> Id -> a

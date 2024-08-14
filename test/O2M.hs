@@ -35,7 +35,8 @@ data User = User
   deriving (Show, Eq, Generic, FromJSON, ToJSON, Cache.EntityCache)
 
 data TodoInput = TodoInput
-  { _todo_name :: String,
+  { _todo_ref :: Maybe Id,
+    _todo_name :: String,
     _todo_detail :: String
   }
   deriving (Generic, FromJSON, ToJSON)
@@ -78,8 +79,14 @@ instance NameEntity TodoInput where
 instance NameEntity Todo where
   getName = todo_name
 
+instance RefEntity TodoInput where
+  getRef = _todo_ref
+  attachRef t i = t {_todo_ref = Just i}
+
 instance RefEntity Todo where
   getRef = todo_ref
+
+  attachRef t i = t {todo_ref = Just i}
 
 instance Entity Todo where
   type EntityInput Todo = TodoInput
@@ -89,10 +96,16 @@ instance Entity Todo where
   createFromInput ti = do
     i <- genId
     t <- getCurrentTime
-    return $ Todo i Nothing (_todo_name ti) (_todo_detail ti) t t
+    return $ Todo i (_todo_ref ti) (_todo_name ti) (_todo_detail ti) t t
   modifyFromInput ti t = do
     t' <- getCurrentTime
-    return $ t {todo_name = _todo_name ti, todo_detail = _todo_detail ti, todo_modified_time = t'}
+    return $
+      t
+        { todo_ref = _todo_ref ti,
+          todo_name = _todo_name ti,
+          todo_detail = _todo_detail ti,
+          todo_modified_time = t'
+        }
 
 -- check this
 instance Biz.OneToMany User Todo
@@ -114,7 +127,7 @@ main = do
 
   let userId = getId u
 
-  _ <- Biz.saveRef o2m userId (TodoInput "grocery" "buy milk")
+  _ <- Biz.saveRef o2m userId (TodoInput Nothing "grocery" "buy milk")
 
   refMap <- Biz.getRefMap o2m
 
