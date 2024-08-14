@@ -1,18 +1,19 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeApplications #-}
+
 -- file: OneToMany.hs
 -- author: Jacob Xie
 -- date: 2024/08/12 13:42:45 Monday
 -- brief:
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeApplications #-}
 
 module PsychicEureka.Biz.OneToMany where
 
 import Control.Concurrent (MVar, modifyMVar_, newMVar, readMVar)
 import Control.Exception (throw)
 import qualified Data.Map as Map
-import Data.Maybe (fromMaybe)
+import Data.Maybe (mapMaybe)
 import PsychicEureka.Biz.Common (RefEntity, getRef)
 import qualified PsychicEureka.Cache as Cache
 import qualified PsychicEureka.Entity as Entity
@@ -36,21 +37,16 @@ data CacheOneToMany a b = CacheOneToMany
   }
 
 class (Cache.EntityCache a, RefEntity b, Cache.EntityCache b) => OneToMany a b where
-  initialize :: Cache.EntityCacheStore a -> Cache.EntityCacheStore b -> IO (CacheOneToMany a b)
-  initialize ca cb = do
+  construct :: Cache.EntityCacheStore a -> Cache.EntityCacheStore b -> IO (CacheOneToMany a b)
+  construct ca cb = do
     (_, ma) <- readMVar ca
     (_, mb) <- readMVar cb
 
-    ref <- newMVar $ Map.foldrWithKey (insertRelation ma) Map.empty mb
+    ref <- newMVar $ Map.mapWithKey (\k _ -> findRefs k mb) ma
     return $ CacheOneToMany ca cb ref
     where
-      insertRelation m1 k2 e resultMap =
-        let k1 = getRef e
-         in if Map.member k1 m1
-              then
-                let curVal = fromMaybe [] (Map.lookup k1 resultMap)
-                 in Map.insert k1 (k2 : curVal) resultMap
-              else resultMap
+      matchRef _ka (_kb, _vb) = getRef _vb >>= \rf -> if rf == _ka then Just _kb else Nothing
+      findRefs _ka _mb = mapMaybe (matchRef _ka) (Map.assocs _mb)
 
   getRefMap :: CacheOneToMany a b -> IO (Map.Map MainId [RefId])
   getRefMap = readMVar . refRelation

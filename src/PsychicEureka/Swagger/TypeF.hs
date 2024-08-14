@@ -59,9 +59,9 @@ type family EntityAPI (name :: Symbol) a where
       :> "info"
       :> Summary ("get " :<>: name :<>: " name and the current time")
       :> Get '[PlainText] String
-      -- /name/name_map
+      -- /name/mapping
       :<|> name
-        :> "name_map"
+        :> "mapping"
         :> Summary (name :<>: " name id mapping")
         :> Get '[JSON] Cache.NameIdMapping
       -- /name/id_exists/{:id}
@@ -90,13 +90,13 @@ type family EntityAPI (name :: Symbol) a where
       -- /name/many
       :<|> name
         :> "many"
-        :> Summary ("retrieve " :<>: name :<>: " by ids, split by comma")
+        :> Summary ("retrieve " :<>: name :<>: " by ids, split by comma; non-exist " :<>: " won't show up")
         :> QueryParam' '[Required, Desc [Id] (name :<>: " [id]")] "name" String
         :> Get '[JSON] [a]
       -- /name/many_by_name
       :<|> name
         :> "many_by_name"
-        :> Summary ("retrieve " :<>: name :<>: " by names, split by comma")
+        :> Summary ("retrieve " :<>: name :<>: " by names, split by comma; non-exist " :<>: " won't show up")
         :> QueryParam' '[Required, Desc [String] (name :<>: " [name]")] "name" String
         :> Get '[JSON] [a]
       -- /name/all
@@ -112,7 +112,7 @@ type family EntityAPI (name :: Symbol) a where
       -- /name/{:id}
       :<|> name
         :> Capture' '[Desc Id "unique identifier"] ":id" Id
-        :> Summary ("modify an existing " :<>: name)
+        :> Summary ("modify an existing " :<>: name :<>: " identified by :id")
         :> ReqBody '[JSON] (Entity.EntityInput a)
         :> Put '[JSON] a
       -- /name/by_name
@@ -125,7 +125,7 @@ type family EntityAPI (name :: Symbol) a where
       -- /name/{:id}
       :<|> name
         :> Capture' '[Desc Id "unique identifier"] ":id" Id
-        :> Summary ("delete an existing " :<>: name)
+        :> Summary ("delete an existing " :<>: name :<>: " identified by :id")
         :> Delete '[JSON] a
       -- /name/by_name
       :<|> name

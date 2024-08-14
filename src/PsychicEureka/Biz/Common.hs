@@ -8,4 +8,4 @@ module PsychicEureka.Biz.Common where
 import PsychicEureka.Util (Id)
 
 class RefEntity a where
-  getRef :: a -> Id
+  getRef :: a -> Maybe Id
