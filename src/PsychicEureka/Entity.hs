@@ -16,15 +16,14 @@ module PsychicEureka.Entity
   )
 where
 
-import Control.Exception (throw)
-import Data.Aeson (FromJSON, ToJSON, eitherDecodeFileStrict, encodeFile)
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Data (Proxy (..), Typeable, typeRep)
 import qualified Data.List as List
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
-import PsychicEureka.Error (EurekaError (..))
+import qualified PsychicEureka.Internal.Util as Util
 import PsychicEureka.Util (Id, id2str)
-import System.Directory (doesFileExist, listDirectory, removeFile)
+import System.Directory (listDirectory, removeFile)
 
 ----------------------------------------------------------------------------------------------------
 -- Entity
@@ -72,7 +71,7 @@ class (EntityConstraint a) => Entity a where
 
   -- | Method to retrieve an entity by its ID. Reads from the corresponding file and decodes it from JSON.
   retrieve :: Id -> IO a
-  retrieve = decodeFile . getPath a
+  retrieve = Util.decodeFile . getPath a
     where
       a = Proxy @a
 
@@ -80,7 +79,7 @@ class (EntityConstraint a) => Entity a where
   retrieveAll :: IO [a]
   retrieveAll =
     listDirectory (persistDir a) >>= \allFiles ->
-      mapM (decodeFile . (persistDir a ++)) (List.filter filterFn allFiles)
+      mapM (Util.decodeFile . (persistDir a ++)) (List.filter filterFn allFiles)
     where
       a = Proxy @a
       filterFn n = List.isPrefixOf (show $ typeRep a) n && List.isSuffixOf ".json" n
@@ -89,7 +88,7 @@ class (EntityConstraint a) => Entity a where
   save :: EntityInput a -> IO a
   save inp =
     createFromInput inp
-      >>= \e -> saveFile a (persistDir a) (getId e) e
+      >>= \e -> Util.saveFile a (persistDir a) (getId e) e
     where
       a = Proxy @a
 
@@ -98,7 +97,7 @@ class (EntityConstraint a) => Entity a where
   update i inp =
     retrieve i
       >>= modifyFromInput inp
-      >>= saveFile a (persistDir a) i
+      >>= Util.saveFile a (persistDir a) i
     where
       a = Proxy @a
 
@@ -109,26 +108,3 @@ class (EntityConstraint a) => Entity a where
     where
       a = Proxy @a
       jsonFilename = getPath a i
-
-----------------------------------------------------------------------------------------------------
--- Helpers
-----------------------------------------------------------------------------------------------------
-
--- Helper function to construct a file path for an entity, given a directory, type, and ID.
-getPath' :: (Typeable a) => Proxy a -> FilePath -> Id -> FilePath
-getPath' a d i = d <> show (typeRep a) <> "." <> id2str i <> ".json"
-
--- Helper function to decode a JSON file into an entity. Throws an error if the file doesn't exist or cannot be parsed.
-decodeFile :: (FromJSON a) => FilePath -> IO a
-decodeFile jsonFilename =
-  doesFileExist jsonFilename >>= \case
-    True ->
-      eitherDecodeFileStrict jsonFilename
-        >>= \case
-          Left msg -> throw $ InternalError $ "could not parse data: " <> msg
-          Right e -> return e
-    _ -> throw $ EntityNotFound $ "could not find: " <> jsonFilename
-
--- Helper function to save an entity as a JSON file. The entity is encoded to JSON and written to the specified file.
-saveFile :: (Typeable a, ToJSON a) => Proxy a -> FilePath -> Id -> a -> IO a
-saveFile a d i e = encodeFile (getPath' a d i) e >> return e

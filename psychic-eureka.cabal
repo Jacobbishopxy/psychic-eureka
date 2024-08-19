@@ -33,6 +33,7 @@ library
     PsychicEureka.Biz.Common
     PsychicEureka.Biz.OneToMany
     PsychicEureka.Error
+    PsychicEureka.Internal.Util
     PsychicEureka.Swagger.Gen
     PsychicEureka.Swagger.Schema
     PsychicEureka.Swagger.TypeF
