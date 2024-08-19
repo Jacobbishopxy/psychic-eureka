@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 -- file: Entity.hs
@@ -17,7 +18,7 @@ where
 
 import Control.Exception (throw)
 import Data.Aeson (FromJSON, ToJSON, eitherDecodeFileStrict, encodeFile)
-import Data.Data (Proxy (..), TypeRep, Typeable, typeRep)
+import Data.Data (Proxy (..), Typeable, typeRep)
 import qualified Data.List as List
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
@@ -58,52 +59,57 @@ class (EntityConstraint a) => Entity a where
   ----------------------------------------------------------------------------------------------------
   -- default impl
 
-  retrieve :: Id -> IO a
-  retrieve = decodeFile . getPath tr
+  persistDir :: Proxy a -> FilePath
+  persistDir _ = "./data"
+
+  getPath :: Proxy a -> Id -> FilePath
+  getPath _ i = (persistDir a) <> show (typeRep a) <> "." <> id2str i <> ".json"
     where
-      tr = typeRep (Proxy :: Proxy a)
+      a = Proxy @a
+
+  retrieve :: Id -> IO a
+  retrieve = decodeFile . getPath a
+    where
+      a = Proxy @a
 
   retrieveAll :: IO [a]
   retrieveAll =
-    listDirectory dataDir >>= \allFiles ->
-      mapM (decodeFile . (dataDir ++)) (List.filter filterFn allFiles)
+    listDirectory (persistDir a) >>= \allFiles ->
+      mapM (decodeFile . (persistDir a ++)) (List.filter filterFn allFiles)
     where
-      tr = typeRep (Proxy :: Proxy a)
-      filterFn n = List.isPrefixOf (show tr) n && List.isSuffixOf ".json" n
+      a = Proxy @a
+      filterFn n = List.isPrefixOf (show $ typeRep a) n && List.isSuffixOf ".json" n
 
   save :: EntityInput a -> IO a
   save inp =
     createFromInput inp
-      >>= \e -> saveFile tr (getId e) e
+      >>= \e -> saveFile a (persistDir a) (getId e) e
     where
-      tr = typeRep (Proxy :: Proxy a)
+      a = Proxy @a
 
   update :: Id -> EntityInput a -> IO a
   update i inp =
     retrieve i
       >>= modifyFromInput inp
-      >>= saveFile tr i
+      >>= saveFile a (persistDir a) i
     where
-      tr = typeRep (Proxy :: Proxy a)
+      a = Proxy @a
 
   delete :: Id -> IO a
   delete i =
     retrieve i >>= \e -> removeFile jsonFilename >> return e
     where
-      tr = typeRep (Proxy :: Proxy a)
-      jsonFilename = getPath tr i
+      a = Proxy @a
+      jsonFilename = getPath a i
 
 ----------------------------------------------------------------------------------------------------
 -- Helpers
 ----------------------------------------------------------------------------------------------------
 
-dataDir :: FilePath
-dataDir = "./data/"
+getPath' :: (Typeable a) => Proxy a -> FilePath -> Id -> FilePath
+getPath' a d i = d <> show (typeRep a) <> "." <> id2str i <> ".json"
 
-getPath :: TypeRep -> Id -> String
-getPath tr i = dataDir <> show tr <> "." <> id2str i <> ".json"
-
-decodeFile :: (FromJSON a) => String -> IO a
+decodeFile :: (FromJSON a) => FilePath -> IO a
 decodeFile jsonFilename =
   doesFileExist jsonFilename >>= \case
     True ->
@@ -113,5 +119,5 @@ decodeFile jsonFilename =
           Right e -> return e
     _ -> throw $ EntityNotFound $ "could not find: " <> jsonFilename
 
-saveFile :: (ToJSON a) => TypeRep -> Id -> a -> IO a
-saveFile tr i e = encodeFile (getPath tr i) e >> return e
+saveFile :: (Typeable a, ToJSON a) => Proxy a -> FilePath -> Id -> a -> IO a
+saveFile a d i e = encodeFile (getPath' a d i) e >> return e
