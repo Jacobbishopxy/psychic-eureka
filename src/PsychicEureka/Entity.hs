@@ -44,6 +44,7 @@ type EntityConstraint a =
   )
 
 class (EntityConstraint a) => Entity a where
+  -- | Associated type representing the input required to create or modify an entity.
   type EntityInput a
 
   getId :: a -> Id
@@ -59,19 +60,23 @@ class (EntityConstraint a) => Entity a where
   ----------------------------------------------------------------------------------------------------
   -- default impl
 
+  -- | Method to get the directory where entities of this type are persisted. Uses `Proxy` to infer type `a`.
   persistDir :: Proxy a -> FilePath
   persistDir _ = "./data"
 
+  -- | Method to get the full path to the file where an entity is stored, based on its ID.
   getPath :: Proxy a -> Id -> FilePath
   getPath _ i = (persistDir a) <> show (typeRep a) <> "." <> id2str i <> ".json"
     where
       a = Proxy @a
 
+  -- | Method to retrieve an entity by its ID. Reads from the corresponding file and decodes it from JSON.
   retrieve :: Id -> IO a
   retrieve = decodeFile . getPath a
     where
       a = Proxy @a
 
+  -- | Method to retrieve all entities of this type from the persistence directory.
   retrieveAll :: IO [a]
   retrieveAll =
     listDirectory (persistDir a) >>= \allFiles ->
@@ -80,6 +85,7 @@ class (EntityConstraint a) => Entity a where
       a = Proxy @a
       filterFn n = List.isPrefixOf (show $ typeRep a) n && List.isSuffixOf ".json" n
 
+  -- | Method to save a new entity based on the input data. The entity is saved to a file.
   save :: EntityInput a -> IO a
   save inp =
     createFromInput inp
@@ -87,6 +93,7 @@ class (EntityConstraint a) => Entity a where
     where
       a = Proxy @a
 
+  -- | Method to update an existing entity by its ID using new input data. The updated entity is saved to a file.
   update :: Id -> EntityInput a -> IO a
   update i inp =
     retrieve i
@@ -95,6 +102,7 @@ class (EntityConstraint a) => Entity a where
     where
       a = Proxy @a
 
+  -- | Method to delete an entity by its ID. The corresponding file is removed.
   delete :: Id -> IO a
   delete i =
     retrieve i >>= \e -> removeFile jsonFilename >> return e
@@ -106,9 +114,11 @@ class (EntityConstraint a) => Entity a where
 -- Helpers
 ----------------------------------------------------------------------------------------------------
 
+-- Helper function to construct a file path for an entity, given a directory, type, and ID.
 getPath' :: (Typeable a) => Proxy a -> FilePath -> Id -> FilePath
 getPath' a d i = d <> show (typeRep a) <> "." <> id2str i <> ".json"
 
+-- Helper function to decode a JSON file into an entity. Throws an error if the file doesn't exist or cannot be parsed.
 decodeFile :: (FromJSON a) => FilePath -> IO a
 decodeFile jsonFilename =
   doesFileExist jsonFilename >>= \case
@@ -119,5 +129,6 @@ decodeFile jsonFilename =
           Right e -> return e
     _ -> throw $ EntityNotFound $ "could not find: " <> jsonFilename
 
+-- Helper function to save an entity as a JSON file. The entity is encoded to JSON and written to the specified file.
 saveFile :: (Typeable a, ToJSON a) => Proxy a -> FilePath -> Id -> a -> IO a
 saveFile a d i e = encodeFile (getPath' a d i) e >> return e
