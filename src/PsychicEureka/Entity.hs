@@ -17,12 +17,11 @@ module PsychicEureka.Entity
 where
 
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Data (Proxy (..), Typeable, typeRep)
-import qualified Data.List as List
+import Data.Data (Proxy (..), Typeable)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 import qualified PsychicEureka.Internal.Util as Util
-import PsychicEureka.Util (Id, id2str)
+import PsychicEureka.Util (Id)
 import System.Directory (listDirectory, removeFile)
 
 ----------------------------------------------------------------------------------------------------
@@ -65,7 +64,7 @@ class (EntityConstraint a) => Entity a where
 
   -- | Method to get the full path to the file where an entity is stored, based on its ID.
   getPath :: Proxy a -> Id -> FilePath
-  getPath _ i = (persistDir a) <> show (typeRep a) <> "." <> id2str i <> ".json"
+  getPath _ i = Util.getPath a (persistDir a) i
     where
       a = Proxy @a
 
@@ -79,10 +78,9 @@ class (EntityConstraint a) => Entity a where
   retrieveAll :: IO [a]
   retrieveAll =
     listDirectory (persistDir a) >>= \allFiles ->
-      mapM (Util.decodeFile . (persistDir a ++)) (List.filter filterFn allFiles)
+      mapM (Util.decodeFile . (persistDir a ++)) (filter (Util.isFileMatch a) allFiles)
     where
       a = Proxy @a
-      filterFn n = List.isPrefixOf (show $ typeRep a) n && List.isSuffixOf ".json" n
 
   -- | Method to save a new entity based on the input data. The entity is saved to a file.
   save :: EntityInput a -> IO a

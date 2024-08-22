@@ -8,6 +8,7 @@ module PsychicEureka.Internal.Util where
 
 import Data.Aeson (FromJSON, ToJSON, eitherDecodeFileStrict, encodeFile)
 import Data.Data (Proxy, Typeable)
+import qualified Data.List as List
 import Data.Typeable (typeRep)
 import GHC.Exception (throw)
 import PsychicEureka.Error
@@ -17,6 +18,10 @@ import System.Directory (doesFileExist)
 -- Helper function to construct a file path for an entity, given a directory, type, and ID.
 getPath :: (Typeable a) => Proxy a -> FilePath -> Id -> FilePath
 getPath a d i = d <> show (typeRep a) <> "." <> id2str i <> ".json"
+
+-- Helper function to determine a file whether matches an entity
+isFileMatch :: (Typeable a) => Proxy a -> FilePath -> Bool
+isFileMatch a d = List.isPrefixOf (show $ typeRep a) d && List.isSuffixOf ".json" d
 
 -- Helper function to decode a JSON file into an entity. Throws an error if the file doesn't exist or cannot be parsed.
 decodeFile :: (FromJSON a) => FilePath -> IO a
