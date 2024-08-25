@@ -35,7 +35,7 @@ decodeFile jsonFilename =
           Right e -> return e
     _ -> throw $ EntityNotFound $ "could not find: " <> jsonFilename
 
--- Helper function to
+-- Helper function to decode a JSON file into an entity; If file not exists, then create from a default value.
 decodeFileOrCreate :: (FromJSON a, ToJSON a) => FilePath -> a -> IO a
 decodeFileOrCreate jsonFilename defaultValue = do
   fileExists <- doesFileExist (jsonFilename)

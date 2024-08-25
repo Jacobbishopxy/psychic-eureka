@@ -10,9 +10,13 @@
 -- date: 2024/08/12 13:42:45 Monday
 -- brief:
 
-module PsychicEureka.Biz.OneToMany where
+module PsychicEureka.Biz.OneToMany
+  ( CacheOneToMany (..),
+    OneToMany (..),
+  )
+where
 
-import Control.Concurrent (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
+import Control.Concurrent (MVar, modifyMVar, newMVar, readMVar)
 import Control.Exception (throw)
 import Data.Aeson (FromJSON, ToJSON, encodeFile)
 import Data.Data (Proxy (..), typeRep)
@@ -41,47 +45,7 @@ type RefO2M = Map.Map MainId [RefId]
 newtype RefRelationO2MData = RefRelationO2MData RefO2M
   deriving (Generic, ToJSON, FromJSON)
 
-refO2M :: RefRelationO2MData -> RefO2M
-refO2M (RefRelationO2MData d) = d
-
 type RefRelationO2M = MVar RefRelationO2MData
-
-newRefRelationO2M :: RefRelationO2MData -> IO RefRelationO2M
-newRefRelationO2M = newMVar
-
-defaultRefRelationO2M :: Cache.EntityCacheStore a -> IO RefRelationO2MData
-defaultRefRelationO2M m = do
-  (_, m') <- readMVar m
-  let res = Map.map (const []) m'
-  return $ RefRelationO2MData res
-
-readRefO2M :: RefRelationO2M -> IO RefO2M
-readRefO2M r = readMVar r >>= return . refO2M
-
-modifyRefO2M :: RefRelationO2M -> (RefRelationO2MData -> RefRelationO2MData) -> IO RefRelationO2MData
-modifyRefO2M rr fn = modifyMVar rr $ \d -> let newD = fn d in return (newD, newD)
-
-modifyRefO2M_ :: RefRelationO2M -> (RefRelationO2MData -> RefRelationO2MData) -> IO ()
-modifyRefO2M_ rr fn = modifyMVar_ rr $ return . fn
-
-saveRefO2M :: FilePath -> RefRelationO2MData -> IO ()
-saveRefO2M = encodeFile
-
-insertRefId :: MainId -> RefId -> RefRelationO2MData -> RefRelationO2MData
-insertRefId mi ri (RefRelationO2MData m) =
-  RefRelationO2MData um
-  where
-    um = Map.insertWith (++) mi [ri] m
-
-removeRefId :: MainId -> RefId -> RefRelationO2MData -> RefRelationO2MData
-removeRefId mi ri (RefRelationO2MData m) =
-  RefRelationO2MData um
-  where
-    um = Map.update fn mi m
-    fn :: [RefId] -> Maybe [RefId]
-    fn ris =
-      let newRis = filter (/= ri) ris
-       in if null newRis then Nothing else Just newRis
 
 data CacheOneToMany a b = CacheOneToMany
   { cacheStoreMain :: Cache.EntityCacheStore a,
@@ -96,6 +60,7 @@ data CacheOneToMany a b = CacheOneToMany
 class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
   ----------------------------------------------------------------------------------------------------
   -- default impl
+  ----------------------------------------------------------------------------------------------------
 
   -- default persistence directory
   refRelationPersist :: Proxy a -> Proxy b -> FilePath
@@ -211,3 +176,41 @@ class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
     mi <- Cache.getIdByName ca mn
     ri <- Cache.getIdByName cb rn
     removeRef c mi ri
+
+----------------------------------------------------------------------------------------------------
+-- Helpers
+----------------------------------------------------------------------------------------------------
+
+refO2M :: RefRelationO2MData -> RefO2M
+refO2M (RefRelationO2MData d) = d
+
+defaultRefRelationO2M :: Cache.EntityCacheStore a -> IO RefRelationO2MData
+defaultRefRelationO2M m = do
+  (_, m') <- readMVar m
+  let res = Map.map (const []) m'
+  return $ RefRelationO2MData res
+
+readRefO2M :: RefRelationO2M -> IO RefO2M
+readRefO2M r = readMVar r >>= return . refO2M
+
+modifyRefO2M :: RefRelationO2M -> (RefRelationO2MData -> RefRelationO2MData) -> IO RefRelationO2MData
+modifyRefO2M rr fn = modifyMVar rr $ \d -> let newD = fn d in return (newD, newD)
+
+saveRefO2M :: FilePath -> RefRelationO2MData -> IO ()
+saveRefO2M = encodeFile
+
+insertRefId :: MainId -> RefId -> RefRelationO2MData -> RefRelationO2MData
+insertRefId mi ri (RefRelationO2MData m) =
+  RefRelationO2MData um
+  where
+    um = Map.insertWith (++) mi [ri] m
+
+removeRefId :: MainId -> RefId -> RefRelationO2MData -> RefRelationO2MData
+removeRefId mi ri (RefRelationO2MData m) =
+  RefRelationO2MData um
+  where
+    um = Map.update fn mi m
+    fn :: [RefId] -> Maybe [RefId]
+    fn ris =
+      let newRis = filter (/= ri) ris
+       in if null newRis then Nothing else Just newRis
