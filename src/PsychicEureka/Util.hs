@@ -22,12 +22,13 @@ module PsychicEureka.Util
 where
 
 import Control.Lens ((&), (?~))
-import Data.Aeson (FromJSON (..), ToJSON (toJSON), withText)
+import Data.Aeson
+import Data.Aeson.Types
 import Data.ByteString (toStrict)
 import Data.Data (Typeable)
 import Data.Maybe (fromJust, mapMaybe)
-import Data.Swagger (HasDescription (description), HasFormat (..), HasType (..), NamedSchema (..), SwaggerType (..), ToParamSchema, ToSchema (declareNamedSchema))
-import Data.Text (pack)
+import Data.Swagger
+import Data.Text (Text, pack)
 import Data.Time (UTCTime (..), defaultTimeLocale, formatTime, fromGregorian, getCurrentTime)
 import Data.UUID (UUID, fromString, fromText, toByteString, toString, toText)
 import Data.UUID.V4 (nextRandom)
@@ -59,6 +60,19 @@ instance FromJSON Id where
     case fromText t of
       Just uuid -> pure (Id uuid)
       Nothing -> fail "Invalid UUID string"
+
+-- Implementing ToJSONKey for Id
+instance ToJSONKey Id where
+  toJSONKey = toJSONKeyText $ \(Id uuid) -> toText uuid
+
+-- Implementing FromJSONKey for Id
+instance FromJSONKey Id where
+  fromJSONKey = FromJSONKeyTextParser parseId
+    where
+      parseId :: Text -> Parser Id
+      parseId txt = case fromText txt of
+        Just uuid -> pure (Id uuid)
+        Nothing -> fail "Invalid UUID format"
 
 -- | Swagger schema definition for 'Id', describing it as a string with a UUID format.
 instance ToSchema Id where
@@ -129,7 +143,7 @@ str2strs = splitByComma
 splitByComma :: String -> [String]
 splitByComma [] = []
 splitByComma s =
-  let (name, rest) = break (== ',') s
-   in name : case rest of
+  let (nm, rest) = break (== ',') s
+   in nm : case rest of
         [] -> []
         (_ : xs) -> splitByComma xs

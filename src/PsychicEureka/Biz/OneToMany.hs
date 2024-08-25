@@ -1,7 +1,8 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
 -- file: OneToMany.hs
@@ -11,15 +12,21 @@
 
 module PsychicEureka.Biz.OneToMany where
 
-import Control.Concurrent (MVar, modifyMVar_, newMVar, readMVar)
+import Control.Concurrent (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
 import Control.Exception (throw)
+import Data.Aeson (FromJSON, ToJSON, encodeFile)
+import Data.Data (Proxy (..), typeRep)
 import qualified Data.Map as Map
-import Data.Maybe (mapMaybe)
-import PsychicEureka.Biz.Common (RefEntity, attachRef, getRef)
+import GHC.Generics (Generic)
 import qualified PsychicEureka.Cache as Cache
 import qualified PsychicEureka.Entity as Entity
 import PsychicEureka.Error (EurekaError (..))
+import qualified PsychicEureka.Internal.Util as Util
 import PsychicEureka.Util (Id)
+
+----------------------------------------------------------------------------------------------------
+-- Types & Newtype
+----------------------------------------------------------------------------------------------------
 
 type MainId = Id
 
@@ -29,43 +36,113 @@ type MainName = String
 
 type RefName = String
 
-type RefRelation = MVar (Map.Map MainId [RefId])
+type RefO2M = Map.Map MainId [RefId]
+
+newtype RefRelationO2MData = RefRelationO2MData RefO2M
+  deriving (Generic, ToJSON, FromJSON)
+
+refO2M :: RefRelationO2MData -> RefO2M
+refO2M (RefRelationO2MData d) = d
+
+type RefRelationO2M = MVar RefRelationO2MData
+
+newRefRelationO2M :: RefRelationO2MData -> IO RefRelationO2M
+newRefRelationO2M = newMVar
+
+defaultRefRelationO2M :: Cache.EntityCacheStore a -> IO RefRelationO2MData
+defaultRefRelationO2M m = do
+  (_, m') <- readMVar m
+  let res = Map.map (const []) m'
+  return $ RefRelationO2MData res
+
+readRefO2M :: RefRelationO2M -> IO RefO2M
+readRefO2M r = readMVar r >>= return . refO2M
+
+modifyRefO2M :: RefRelationO2M -> (RefRelationO2MData -> RefRelationO2MData) -> IO RefRelationO2MData
+modifyRefO2M rr fn = modifyMVar rr $ \d -> let newD = fn d in return (newD, newD)
+
+modifyRefO2M_ :: RefRelationO2M -> (RefRelationO2MData -> RefRelationO2MData) -> IO ()
+modifyRefO2M_ rr fn = modifyMVar_ rr $ return . fn
+
+saveRefO2M :: FilePath -> RefRelationO2MData -> IO ()
+saveRefO2M = encodeFile
+
+insertRefId :: MainId -> RefId -> RefRelationO2MData -> RefRelationO2MData
+insertRefId mi ri (RefRelationO2MData m) =
+  RefRelationO2MData um
+  where
+    um = Map.insertWith (++) mi [ri] m
+
+removeRefId :: MainId -> RefId -> RefRelationO2MData -> RefRelationO2MData
+removeRefId mi ri (RefRelationO2MData m) =
+  RefRelationO2MData um
+  where
+    um = Map.update fn mi m
+    fn :: [RefId] -> Maybe [RefId]
+    fn ris =
+      let newRis = filter (/= ri) ris
+       in if null newRis then Nothing else Just newRis
 
 data CacheOneToMany a b = CacheOneToMany
   { cacheStoreMain :: Cache.EntityCacheStore a,
     cacheStoreSub :: Cache.EntityCacheStore b,
-    refRelation :: RefRelation
+    refRelation :: RefRelationO2M
   }
 
-class (Cache.EntityCache a, RefEntity (Entity.EntityInput b), RefEntity b, Cache.EntityCache b) => OneToMany a b where
+----------------------------------------------------------------------------------------------------
+-- OneToMany
+----------------------------------------------------------------------------------------------------
+
+class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
+  ----------------------------------------------------------------------------------------------------
+  -- default impl
+
+  -- default persistence directory
+  refRelationPersist :: Proxy a -> Proxy b -> FilePath
+  refRelationPersist _ _ = "./data/o2m." <> show (typeRep a) <> "." <> show (typeRep b) <> ".json"
+    where
+      a = Proxy @a
+      b = Proxy @b
+
   construct :: Cache.EntityCacheStore a -> Cache.EntityCacheStore b -> IO (CacheOneToMany a b)
   construct ca cb = do
-    (_, ma) <- readMVar ca
-    (_, mb) <- readMVar cb
+    defaultO2M <- defaultRefRelationO2M ca
+    ref <- Util.decodeFileOrCreate (refRelationPersist a b) defaultO2M
+    ref' <- newMVar ref
 
-    ref <- newMVar $ Map.mapWithKey (\k _ -> findRefs k mb) ma
-    return $ CacheOneToMany ca cb ref
+    return $ CacheOneToMany ca cb ref'
     where
-      matchRef _ka (_kb, _vb) = getRef _vb >>= \rf -> if rf == _ka then Just _kb else Nothing
-      findRefs _ka _mb = mapMaybe (matchRef _ka) (Map.assocs _mb)
+      a = Proxy @a
+      b = Proxy @b
 
-  getRefMap :: CacheOneToMany a b -> IO (Map.Map MainId [RefId])
-  getRefMap = readMVar . refRelation
+  constructWithoutRef :: Cache.EntityCacheStore a -> Cache.EntityCacheStore b -> IO (CacheOneToMany a b)
+  constructWithoutRef ca cb = do
+    defaultO2M <- defaultRefRelationO2M ca
+    _ <- encodeFile (refRelationPersist a b) defaultO2M
+    ref' <- newMVar defaultO2M
+
+    return $ CacheOneToMany ca cb ref'
+    where
+      a = Proxy @a
+      b = Proxy @b
+
+  getRefMap :: CacheOneToMany a b -> IO RefO2M
+  getRefMap = readRefO2M . refRelation
 
   isIdInKey :: CacheOneToMany a b -> MainId -> IO Bool
   isIdInKey (CacheOneToMany _ _ r) mi =
-    readMVar r >>= return . Map.member mi
+    readRefO2M r >>= return . Map.member mi
 
   isIdInValue :: CacheOneToMany a b -> MainId -> RefId -> IO Bool
   isIdInValue (CacheOneToMany _ _ r) mi ri = do
-    readMVar r >>= \m ->
+    readRefO2M r >>= \m ->
       case Map.lookup mi m of
         Nothing -> return False
         Just e -> return $ ri `elem` e
 
   getAllRefIds :: CacheOneToMany a b -> MainId -> IO [RefId]
   getAllRefIds (CacheOneToMany _ _ r) mi =
-    readMVar r >>= \m ->
+    readRefO2M r >>= \m ->
       case Map.lookup mi m of
         Nothing -> throw $ IdNotFound mi
         Just e -> return e
@@ -90,13 +167,15 @@ class (Cache.EntityCache a, RefEntity (Entity.EntityInput b), RefEntity b, Cache
   saveRef c@(CacheOneToMany _ cb r) mi inp =
     isIdInKey c mi >>= \case
       True -> do
-        b <- Cache.save cb (attachRef inp mi)
-        let newRefId = Entity.getId b
-        modifyMVar_ r $ \m ->
-          let updatedVal = newRefId : (m Map.! mi)
-           in return $ Map.insert mi updatedVal m
-        return b
+        sb <- Cache.save cb inp
+        let newRefId = Entity.getId sb
+        newR <- modifyRefO2M r $ insertRefId mi newRefId
+        saveRefO2M (refRelationPersist a b) newR
+        return sb
       False -> throw $ IdNotFound mi
+    where
+      a = Proxy @a
+      b = Proxy @b
 
   saveRefByName :: CacheOneToMany a b -> MainName -> Entity.EntityInput b -> IO b
   saveRefByName c@(CacheOneToMany ca _ _) mn inp =
@@ -118,12 +197,14 @@ class (Cache.EntityCache a, RefEntity (Entity.EntityInput b), RefEntity b, Cache
   removeRef c@(CacheOneToMany _ cb r) mi ri =
     isIdInKey c mi >>= \case
       True -> do
-        b <- Cache.remove cb ri
-        modifyMVar_ r $ \m ->
-          let updatedVal = filter (/= ri) (m Map.! mi)
-           in return $ Map.insert mi updatedVal m
-        return b
+        rb <- Cache.remove cb ri
+        newR <- modifyRefO2M r $ removeRefId mi ri
+        saveRefO2M (refRelationPersist a b) newR
+        return rb
       False -> throw $ IdNotFound ri
+    where
+      a = Proxy @a
+      b = Proxy @b
 
   removeRefByName :: CacheOneToMany a b -> MainName -> RefName -> IO b
   removeRefByName c@(CacheOneToMany ca cb _) mn rn = do

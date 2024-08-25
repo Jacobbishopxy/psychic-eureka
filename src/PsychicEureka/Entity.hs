@@ -60,7 +60,7 @@ class (EntityConstraint a) => Entity a where
 
   -- | Method to get the directory where entities of this type are persisted. Uses `Proxy` to infer type `a`.
   persistDir :: Proxy a -> FilePath
-  persistDir _ = "./data"
+  persistDir _ = "./data/"
 
   -- | Method to get the full path to the file where an entity is stored, based on its ID.
   getPath :: Proxy a -> Id -> FilePath

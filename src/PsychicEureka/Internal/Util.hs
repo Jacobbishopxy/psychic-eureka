@@ -1,8 +1,9 @@
+{-# LANGUAGE LambdaCase #-}
+
 -- file: Util.hs
 -- author: Jacob Xie
 -- date: 2024/08/19 10:06:31 Monday
 -- brief:
-{-# LANGUAGE LambdaCase #-}
 
 module PsychicEureka.Internal.Util where
 
@@ -33,6 +34,18 @@ decodeFile jsonFilename =
           Left msg -> throw $ InternalError $ "could not parse data: " <> msg
           Right e -> return e
     _ -> throw $ EntityNotFound $ "could not find: " <> jsonFilename
+
+-- Helper function to
+decodeFileOrCreate :: (FromJSON a, ToJSON a) => FilePath -> a -> IO a
+decodeFileOrCreate jsonFilename defaultValue = do
+  fileExists <- doesFileExist (jsonFilename)
+  if fileExists
+    then decodeFile jsonFilename
+    else do
+      -- Write the default value to the file
+      encodeFile jsonFilename defaultValue
+      -- Return the default value
+      return defaultValue
 
 -- Helper function to save an entity as a JSON file. The entity is encoded to JSON and written to the specified file.
 saveFile :: (Typeable a, ToJSON a) => Proxy a -> FilePath -> Id -> a -> IO a

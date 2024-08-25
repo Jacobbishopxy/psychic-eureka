@@ -14,7 +14,6 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Time (UTCTime, getCurrentTime)
 import GHC.Generics (Generic)
 import PsychicEureka (Id, genId)
-import PsychicEureka.Biz (RefEntity)
 import qualified PsychicEureka.Biz as Biz
 import qualified PsychicEureka.Cache as Cache
 import PsychicEureka.Entity (Entity (..), NameEntity (getName))
@@ -35,15 +34,13 @@ data User = User
   deriving (Show, Eq, Generic, FromJSON, ToJSON, Cache.EntityCache)
 
 data TodoInput = TodoInput
-  { _todo_ref :: Maybe Id,
-    _todo_name :: String,
+  { _todo_name :: String,
     _todo_detail :: String
   }
   deriving (Generic, FromJSON, ToJSON)
 
 data Todo = Todo
   { todo_id :: Id,
-    todo_ref :: Maybe Id,
     todo_name :: String,
     todo_detail :: String,
     todo_created_time :: UTCTime,
@@ -79,15 +76,6 @@ instance NameEntity TodoInput where
 instance NameEntity Todo where
   getName = todo_name
 
-instance RefEntity TodoInput where
-  getRef = _todo_ref
-  attachRef t i = t {_todo_ref = Just i}
-
-instance RefEntity Todo where
-  getRef = todo_ref
-
-  attachRef t i = t {todo_ref = Just i}
-
 instance Entity Todo where
   type EntityInput Todo = TodoInput
   getId = todo_id
@@ -96,13 +84,12 @@ instance Entity Todo where
   createFromInput ti = do
     i <- genId
     t <- getCurrentTime
-    return $ Todo i (_todo_ref ti) (_todo_name ti) (_todo_detail ti) t t
+    return $ Todo i (_todo_name ti) (_todo_detail ti) t t
   modifyFromInput ti t = do
     t' <- getCurrentTime
     return $
       t
-        { todo_ref = _todo_ref ti,
-          todo_name = _todo_name ti,
+        { todo_name = _todo_name ti,
           todo_detail = _todo_detail ti,
           todo_modified_time = t'
         }
@@ -127,7 +114,7 @@ main = do
 
   let userId = getId u
 
-  _ <- Biz.saveRef o2m userId (TodoInput Nothing "grocery" "buy milk")
+  _ <- Biz.saveRef o2m userId (TodoInput "grocery" "buy milk")
 
   refMap <- Biz.getRefMap o2m
 
