@@ -23,15 +23,14 @@ library
   hs-source-dirs:   src
   exposed-modules:
     PsychicEureka
-    PsychicEureka.Biz
+    PsychicEureka.Biz.ManyToMany
+    PsychicEureka.Biz.OneToMany
     PsychicEureka.Cache
     PsychicEureka.Entity
     PsychicEureka.Service
     PsychicEureka.Swagger
 
   other-modules:
-    PsychicEureka.Biz.Common
-    PsychicEureka.Biz.OneToMany
     PsychicEureka.Error
     PsychicEureka.Internal.Util
     PsychicEureka.Swagger.Gen

@@ -71,10 +71,9 @@ class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
 
   construct :: Cache.EntityCacheStore a -> Cache.EntityCacheStore b -> IO (CacheOneToMany a b)
   construct ca cb = do
-    defaultO2M <- defaultRefRelationO2M ca
+    defaultO2M <- defaultRefRelationO2MData ca
     ref <- Util.decodeFileOrCreate (refRelationPersist a b) defaultO2M
     ref' <- newMVar ref
-
     return $ CacheOneToMany ca cb ref'
     where
       a = Proxy @a
@@ -82,10 +81,9 @@ class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
 
   constructWithoutRef :: Cache.EntityCacheStore a -> Cache.EntityCacheStore b -> IO (CacheOneToMany a b)
   constructWithoutRef ca cb = do
-    defaultO2M <- defaultRefRelationO2M ca
+    defaultO2M <- defaultRefRelationO2MData ca
     _ <- encodeFile (refRelationPersist a b) defaultO2M
     ref' <- newMVar defaultO2M
-
     return $ CacheOneToMany ca cb ref'
     where
       a = Proxy @a
@@ -126,7 +124,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
 
   getManyRef :: CacheOneToMany a b -> MainId -> [RefId] -> IO [b]
   getManyRef c@(CacheOneToMany _ cb _) mi ris =
-    getAllRefIds c mi >>= Cache.retrieveMany cb . filter (`notElem` ris)
+    getAllRefIds c mi >>= Cache.retrieveMany cb . filter (`elem` ris)
 
   saveRef :: CacheOneToMany a b -> MainId -> Entity.EntityInput b -> IO b
   saveRef c@(CacheOneToMany _ cb r) mi inp =
@@ -184,8 +182,8 @@ class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
 refO2M :: RefRelationO2MData -> RefO2M
 refO2M (RefRelationO2MData d) = d
 
-defaultRefRelationO2M :: Cache.EntityCacheStore a -> IO RefRelationO2MData
-defaultRefRelationO2M m = do
+defaultRefRelationO2MData :: Cache.EntityCacheStore a -> IO RefRelationO2MData
+defaultRefRelationO2MData m = do
   (_, m') <- readMVar m
   let res = Map.map (const []) m'
   return $ RefRelationO2MData res
@@ -194,7 +192,7 @@ readRefO2M :: RefRelationO2M -> IO RefO2M
 readRefO2M r = readMVar r >>= return . refO2M
 
 modifyRefO2M :: RefRelationO2M -> (RefRelationO2MData -> RefRelationO2MData) -> IO RefRelationO2MData
-modifyRefO2M rr fn = modifyMVar rr $ \d -> let newD = fn d in return (newD, newD)
+modifyRefO2M r fn = modifyMVar r $ \d -> let newD = fn d in return (newD, newD)
 
 saveRefO2M :: FilePath -> RefRelationO2MData -> IO ()
 saveRefO2M = encodeFile

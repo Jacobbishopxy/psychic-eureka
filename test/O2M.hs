@@ -14,7 +14,7 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Time (UTCTime, getCurrentTime)
 import GHC.Generics (Generic)
 import PsychicEureka (Id, genId)
-import qualified PsychicEureka.Biz as Biz
+import qualified PsychicEureka.Biz.OneToMany as O2M
 import qualified PsychicEureka.Cache as Cache
 import PsychicEureka.Entity (Entity (..), NameEntity (getName))
 
@@ -95,7 +95,7 @@ instance Entity Todo where
         }
 
 -- check this
-instance Biz.OneToMany User Todo
+instance O2M.OneToMany User Todo
 
 ----------------------------------------------------------------------------------------------------
 
@@ -110,13 +110,20 @@ main = do
 
   u <- Cache.save userStore (UserInput "Jacob")
 
-  o2m <- Biz.construct userStore todoStore :: IO (Biz.CacheOneToMany User Todo)
+  o2m <- O2M.construct userStore todoStore :: IO (O2M.CacheOneToMany User Todo)
 
   let userId = getId u
 
-  _ <- Biz.saveRef o2m userId (TodoInput "grocery" "buy milk")
+  todo <- O2M.saveRef o2m userId (TodoInput "grocery" "buy milk")
 
-  refMap <- Biz.getRefMap o2m
+  refMap <- O2M.getRefMap o2m
 
   putStrLn "refMap: "
   print refMap
+
+  let todoId = getId todo
+
+  manyRef <- O2M.getManyRef o2m userId [todoId]
+
+  putStrLn "manyRef: "
+  print manyRef
