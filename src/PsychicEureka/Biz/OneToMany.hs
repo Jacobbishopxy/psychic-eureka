@@ -16,7 +16,7 @@ module PsychicEureka.Biz.OneToMany
   )
 where
 
-import Control.Concurrent (MVar, modifyMVar, newMVar, readMVar)
+import Control.Concurrent (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
 import Control.Exception (throw)
 import Data.Aeson (FromJSON, ToJSON, encodeFile)
 import Data.Data (Proxy (..), typeRep)
@@ -96,6 +96,9 @@ class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
   isIdInKey (CacheOneToMany _ _ r) mi =
     readRefO2M r >>= return . Map.member mi
 
+  isIdInRef :: CacheOneToMany a b -> RefId -> IO Bool
+  isIdInRef (CacheOneToMany _ cb _) ri = Cache.isIdInCache cb ri
+
   isIdInValue :: CacheOneToMany a b -> MainId -> RefId -> IO Bool
   isIdInValue (CacheOneToMany _ _ r) mi ri = do
     readRefO2M r >>= \m ->
@@ -164,7 +167,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
         newR <- modifyRefO2M r $ removeRefId mi ri
         saveRefO2M (refRelationPersist a b) newR
         return rb
-      False -> throw $ IdNotFound ri
+      False -> throw $ IdNotFound mi
     where
       a = Proxy @a
       b = Proxy @b
@@ -174,6 +177,24 @@ class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
     mi <- Cache.getIdByName ca mn
     ri <- Cache.getIdByName cb rn
     removeRef c mi ri
+
+  bindRef :: CacheOneToMany a b -> MainId -> RefId -> IO Bool
+  bindRef c@(CacheOneToMany ca cb r) mi ri = do
+    c1 <- Cache.isIdInCache ca mi
+    c2 <- Cache.isIdInCache cb ri
+    c3 <- isIdInValue c mi ri
+    case (c1, c2, c3) of
+      (True, True, False) -> modifyRefO2M_ r (insertRefId mi ri) >> return True
+      _ -> return False
+
+  unbindRef :: CacheOneToMany a b -> MainId -> RefId -> IO Bool
+  unbindRef c@(CacheOneToMany ca cb r) mi ri = do
+    c1 <- Cache.isIdInCache ca mi
+    c2 <- Cache.isIdInCache cb ri
+    c3 <- isIdInValue c mi ri
+    case (c1, c2, c3) of
+      (True, True, True) -> modifyRefO2M_ r (removeRefId mi ri) >> return True
+      _ -> return False
 
 ----------------------------------------------------------------------------------------------------
 -- Helpers
@@ -193,6 +214,9 @@ readRefO2M r = readMVar r >>= return . refO2M
 
 modifyRefO2M :: RefRelationO2M -> (RefRelationO2MData -> RefRelationO2MData) -> IO RefRelationO2MData
 modifyRefO2M r fn = modifyMVar r $ \d -> let newD = fn d in return (newD, newD)
+
+modifyRefO2M_ :: RefRelationO2M -> (RefRelationO2MData -> RefRelationO2MData) -> IO ()
+modifyRefO2M_ r fn = modifyMVar_ r $ \d -> let newD = fn d in return newD
 
 saveRefO2M :: FilePath -> RefRelationO2MData -> IO ()
 saveRefO2M = encodeFile

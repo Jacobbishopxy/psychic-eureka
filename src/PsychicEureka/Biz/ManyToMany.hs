@@ -16,7 +16,7 @@ module PsychicEureka.Biz.ManyToMany
   )
 where
 
-import Control.Concurrent (MVar, modifyMVar, newMVar, readMVar)
+import Control.Concurrent (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
 import Control.Exception (throw)
 import Data.Aeson (FromJSON, ToJSON, encodeFile)
 import Data.Data (Proxy (..), typeRep)
@@ -177,7 +177,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
       True -> do
         sb <- Cache.save cb inp
         let newRefId = Entity.getId sb
-        res <- modifyRefM2M r $ insertRefL li newRefId
+        res <- modifyRefM2M r $ insertRefIdL li newRefId
         saveRefM2M (refRelationPersist a b) res
         return sb
       False -> throw $ IdNotFound li
@@ -191,7 +191,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
       True -> do
         sa <- Cache.save ca inp
         let newRefId = Entity.getId sa
-        res <- modifyRefM2M r $ insertRefR ri newRefId
+        res <- modifyRefM2M r $ insertRefIdR ri newRefId
         saveRefM2M (refRelationPersist a b) res
         return sa
       False -> throw $ IdNotFound ri
@@ -219,6 +219,80 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
       True -> Cache.update ca li inp
       False -> throw $ IdNotFound li
 
+  updateRefByNameL :: CacheManyToMany a b -> LeftName -> RightName -> Entity.EntityInput b -> IO b
+  updateRefByNameL c@(CacheManyToMany ca cb _) ln rn inp = do
+    li <- Cache.getIdByName ca ln
+    ri <- Cache.getIdByName cb rn
+    updateRefL c li ri inp
+
+  updateRefByNameR :: CacheManyToMany a b -> RightName -> LeftName -> Entity.EntityInput a -> IO a
+  updateRefByNameR c@(CacheManyToMany ca cb _) rn ln inp = do
+    ri <- Cache.getIdByName cb rn
+    li <- Cache.getIdByName ca ln
+    updateRefR c ri li inp
+
+  removeRefL :: CacheManyToMany a b -> LeftId -> RightId -> IO b
+  removeRefL c@(CacheManyToMany _ cb r) li ri =
+    isIdInKeyL c li >>= \case
+      True -> do
+        rb <- Cache.remove cb ri
+        res <- modifyRefM2M r $ removeRefIdL li ri
+        saveRefM2M (refRelationPersist a b) res
+        return rb
+      False -> throw $ IdNotFound li
+    where
+      a = Proxy @a
+      b = Proxy @b
+
+  removeRefR :: CacheManyToMany a b -> RightId -> LeftId -> IO a
+  removeRefR c@(CacheManyToMany ca _ r) ri li =
+    isIdInKeyR c ri >>= \case
+      True -> do
+        ra <- Cache.remove ca li
+        res <- modifyRefM2M r $ removeRefIdR ri li
+        saveRefM2M (refRelationPersist a b) res
+        return ra
+      False -> throw $ IdNotFound ri
+    where
+      a = Proxy @a
+      b = Proxy @b
+
+  bindRefL :: CacheManyToMany a b -> LeftId -> RightId -> IO Bool
+  bindRefL c@(CacheManyToMany ca cb r) li ri = do
+    c1 <- Cache.isIdInCache ca li
+    c2 <- Cache.isIdInCache cb ri
+    c3 <- isIdInValueL c li ri
+    case (c1, c2, c3) of
+      (True, True, False) -> modifyRefM2M_ r (insertRefIdL li ri) >> return True
+      _ -> return False
+
+  bindRefR :: CacheManyToMany a b -> RightId -> LeftId -> IO Bool
+  bindRefR c@(CacheManyToMany ca cb r) ri li = do
+    c1 <- Cache.isIdInCache cb ri
+    c2 <- Cache.isIdInCache ca li
+    c3 <- isIdInValueR c ri li
+    case (c1, c2, c3) of
+      (True, True, False) -> modifyRefM2M_ r (insertRefIdR ri li) >> return True
+      _ -> return False
+
+  unbindRefL :: CacheManyToMany a b -> LeftId -> RightId -> IO Bool
+  unbindRefL c@(CacheManyToMany ca cb r) li ri = do
+    c1 <- Cache.isIdInCache ca li
+    c2 <- Cache.isIdInCache cb ri
+    c3 <- isIdInValueL c li ri
+    case (c1, c2, c3) of
+      (True, True, True) -> modifyRefM2M_ r (removeRefIdL li ri) >> return True
+      _ -> return False
+
+  unbindRefR :: CacheManyToMany a b -> RightId -> LeftId -> IO Bool
+  unbindRefR c@(CacheManyToMany ca cb r) ri li = do
+    c1 <- Cache.isIdInCache ca li
+    c2 <- Cache.isIdInCache cb ri
+    c3 <- isIdInValueL c li ri
+    case (c1, c2, c3) of
+      (True, True, True) -> modifyRefM2M_ r (removeRefIdR ri li) >> return True
+      _ -> return False
+
 ----------------------------------------------------------------------------------------------------
 -- Helpers
 ----------------------------------------------------------------------------------------------------
@@ -243,26 +317,17 @@ readRefM2MR r = readMVar r >>= return . r2l
 modifyRefM2M :: RefRelationM2M -> (RefRelationM2MData -> RefRelationM2MData) -> IO RefRelationM2MData
 modifyRefM2M r fn = modifyMVar r $ \d -> let newD = fn d in return (newD, newD)
 
-modifyRefM2ML :: RefRelationM2M -> (RefM2ML -> RefM2ML) -> IO RefM2ML
-modifyRefM2ML r fn = modifyMVar r $ \d ->
-  let newL = fn (l2r d)
-      newD = RefRelationM2MData newL (r2l d)
-   in return (newD, newL)
+modifyRefM2M_ :: RefRelationM2M -> (RefRelationM2MData -> RefRelationM2MData) -> IO ()
+modifyRefM2M_ r fn = modifyMVar_ r $ \d -> let newD = fn d in return newD
 
-modifyRefM2MR :: RefRelationM2M -> (RefM2MR -> RefM2MR) -> IO RefM2MR
-modifyRefM2MR r fn = modifyMVar r $ \d ->
-  let newR = fn (r2l d)
-      newD = RefRelationM2MData (l2r d) newR
-   in return (newD, newR)
-
-insertRefL :: LeftId -> RightId -> RefRelationM2MData -> RefRelationM2MData
-insertRefL li ri d =
+insertRefIdL :: LeftId -> RightId -> RefRelationM2MData -> RefRelationM2MData
+insertRefIdL li ri d =
   let ld = l2r d
       newLd = Map.insertWith (++) li [ri] ld
    in RefRelationM2MData newLd (r2l d)
 
-insertRefR :: RightId -> LeftId -> RefRelationM2MData -> RefRelationM2MData
-insertRefR ri li d =
+insertRefIdR :: RightId -> LeftId -> RefRelationM2MData -> RefRelationM2MData
+insertRefIdR ri li d =
   let rd = r2l d
       newRd = Map.insertWith (++) ri [li] rd
    in RefRelationM2MData (l2r d) newRd
@@ -270,14 +335,14 @@ insertRefR ri li d =
 saveRefM2M :: FilePath -> RefRelationM2MData -> IO ()
 saveRefM2M = encodeFile
 
-removeRefL :: LeftId -> RightId -> RefRelationM2MData -> RefRelationM2MData
-removeRefL li ri d =
+removeRefIdL :: LeftId -> RightId -> RefRelationM2MData -> RefRelationM2MData
+removeRefIdL li ri d =
   let ld = l2r d
       newLd = Map.update (removeIdFromValue ri) li ld
    in RefRelationM2MData newLd (r2l d)
 
-removeRefR :: RightId -> LeftId -> RefRelationM2MData -> RefRelationM2MData
-removeRefR ri li d =
+removeRefIdR :: RightId -> LeftId -> RefRelationM2MData -> RefRelationM2MData
+removeRefIdR ri li d =
   let rd = r2l d
       newRd = Map.update (removeIdFromValue li) ri rd
    in RefRelationM2MData (r2l d) newRd
