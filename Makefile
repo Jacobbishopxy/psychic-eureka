@@ -17,3 +17,9 @@ freeze:
 
 run:
 	cabal run psychic-eureka
+
+###################################################################################################
+# dev
+
+clean:
+	cabal run test-clean
