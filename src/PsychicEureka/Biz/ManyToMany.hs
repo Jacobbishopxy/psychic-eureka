@@ -321,31 +321,31 @@ modifyRefM2M_ :: RefRelationM2M -> (RefRelationM2MData -> RefRelationM2MData) ->
 modifyRefM2M_ r fn = modifyMVar_ r $ \d -> let newD = fn d in return newD
 
 insertRefIdL :: LeftId -> RightId -> RefRelationM2MData -> RefRelationM2MData
-insertRefIdL li ri d =
-  let ld = l2r d
-      newLd = Map.insertWith (++) li [ri] ld
-   in RefRelationM2MData newLd (r2l d)
+insertRefIdL li ri (RefRelationM2MData ld rd) =
+  let newLd = Map.insertWith (++) li [ri] ld
+      newRd = Map.insertWith (++) ri [li] rd
+   in RefRelationM2MData newLd newRd
 
 insertRefIdR :: RightId -> LeftId -> RefRelationM2MData -> RefRelationM2MData
-insertRefIdR ri li d =
-  let rd = r2l d
+insertRefIdR ri li (RefRelationM2MData ld rd) =
+  let newLd = Map.insertWith (++) li [ri] ld
       newRd = Map.insertWith (++) ri [li] rd
-   in RefRelationM2MData (l2r d) newRd
+   in RefRelationM2MData newLd newRd
 
 saveRefM2M :: FilePath -> RefRelationM2MData -> IO ()
 saveRefM2M = encodeFile
 
 removeRefIdL :: LeftId -> RightId -> RefRelationM2MData -> RefRelationM2MData
-removeRefIdL li ri d =
-  let ld = l2r d
-      newLd = Map.update (removeIdFromValue ri) li ld
-   in RefRelationM2MData newLd (r2l d)
+removeRefIdL li ri (RefRelationM2MData ld rd) =
+  let newLd = Map.update (removeIdFromValue ri) li ld
+      newRd = Map.update (removeIdFromValue li) ri rd
+   in RefRelationM2MData newLd newRd
 
 removeRefIdR :: RightId -> LeftId -> RefRelationM2MData -> RefRelationM2MData
-removeRefIdR ri li d =
-  let rd = r2l d
+removeRefIdR ri li (RefRelationM2MData ld rd) =
+  let newLd = Map.update (removeIdFromValue ri) li ld
       newRd = Map.update (removeIdFromValue li) ri rd
-   in RefRelationM2MData (r2l d) newRd
+   in RefRelationM2MData newLd newRd
 
 removeIdFromValue :: Id -> [Id] -> Maybe [Id]
 removeIdFromValue i ris =
