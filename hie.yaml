@@ -17,3 +17,6 @@ cradle:
 
     - path: "test/O2M.hs"
       component: "psychic-eureka:test:test-o2m"
+
+    - path: "test/CleanTestData.hs"
+      component: "psychic-eureka:test:test-clean"
