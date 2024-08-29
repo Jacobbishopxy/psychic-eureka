@@ -55,7 +55,7 @@ newtype RefRelationO2MData = RefRelationO2MData RefO2M
 type RefRelationO2M = MVar RefRelationO2MData
 
 -- | The cache for a one-to-many relationship, including caches for the main entity, the reference entity,
--- and the reference relationship data.
+--   and the reference relationship data.
 data CacheOneToMany a b = CacheOneToMany
   { cacheStoreMain :: Cache.EntityCacheStore a,
     cacheStoreSub :: Cache.EntityCacheStore b,
@@ -67,7 +67,7 @@ data CacheOneToMany a b = CacheOneToMany
 ----------------------------------------------------------------------------------------------------
 
 -- | The `OneToMany` class defines operations for managing a one-to-many relationship between
--- two entities that can be cached.
+--   two entities that can be cached.
 class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
   ----------------------------------------------------------------------------------------------------
   -- Default implementations
@@ -81,7 +81,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
       b = Proxy @b
 
   -- | Constructs a `CacheOneToMany` with default reference data, loading from a persisted file or
-  -- create new data if the file does not exists.
+  --   create new data if the file does not exists.
   construct :: Cache.EntityCacheStore a -> Cache.EntityCacheStore b -> IO (CacheOneToMany a b)
   construct ca cb = do
     defaultO2M <- defaultRefRelationO2MData ca
@@ -93,7 +93,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
       b = Proxy @b
 
   -- | Constructs a `CacheOneToMany` without loading any existing reference data, and creates
-  -- a new default reference data set.
+  --   a new default reference data set.
   constructWithoutRef :: Cache.EntityCacheStore a -> Cache.EntityCacheStore b -> IO (CacheOneToMany a b)
   constructWithoutRef ca cb = do
     defaultO2M <- defaultRefRelationO2MData ca
