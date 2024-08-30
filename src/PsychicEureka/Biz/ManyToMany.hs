@@ -110,7 +110,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
   getRefMap :: CacheManyToMany a b -> IO RefRelationM2MData
   getRefMap = readRefM2M . refRelation
 
-  -- | Retrieve the map of LeftId to RightIds
+  -- | Retrieve the map of `LeftId` to RightIds
   getRefMapL :: CacheManyToMany a b -> IO RefM2ML
   getRefMapL (CacheManyToMany _ _ r) = readRefM2M r >>= return . l2r
 
@@ -118,17 +118,17 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
   getRefMapR :: CacheManyToMany a b -> IO RefM2MR
   getRefMapR (CacheManyToMany _ _ r) = readRefM2M r >>= return . r2l
 
-  -- | Check if a LeftId exists in the relationship map.
+  -- | Check if a `LeftId` exists in the relationship map.
   isIdInKeyL :: CacheManyToMany a b -> LeftId -> IO Bool
   isIdInKeyL (CacheManyToMany _ _ r) li =
     readRefM2ML r >>= return . Map.member li
 
-  -- | Check if a RightId exists in the relationship map.
+  -- | Check if a `RightId` exists in the relationship map.
   isIdInKeyR :: CacheManyToMany a b -> RightId -> IO Bool
   isIdInKeyR (CacheManyToMany _ _ r) ri =
     readRefM2MR r >>= return . Map.member ri
 
-  -- | Check if a specific RightId is associated with a given LeftId.
+  -- | Check if a specific `RightId` is associated with a given `LeftId`.
   isIdInValueL :: CacheManyToMany a b -> LeftId -> RightId -> IO Bool
   isIdInValueL (CacheManyToMany _ _ r) li ri =
     readRefM2ML r >>= \m ->
@@ -136,7 +136,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
         Nothing -> return False
         Just e -> return $ ri `elem` e
 
-  -- | Check if a specific LeftId is associated with a given RightId.
+  -- | Check if a specific `LeftId` is associated with a given `RightId`.
   isIdInValueR :: CacheManyToMany a b -> RightId -> LeftId -> IO Bool
   isIdInValueR (CacheManyToMany _ _ r) ri li =
     readRefM2MR r >>= \m ->
@@ -144,7 +144,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
         Nothing -> return False
         Just e -> return $ li `elem` e
 
-  -- | Retrieve all RightIds associated with a given LeftId.
+  -- | Retrieve all RightIds associated with a given `LeftId`.
   getAllRefIdsL :: CacheManyToMany a b -> LeftId -> IO [RightId]
   getAllRefIdsL (CacheManyToMany _ _ r) li =
     readRefM2ML r >>= \m ->
@@ -152,7 +152,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
         Nothing -> throw $ IdNotFound li
         Just e -> return e
 
-  -- | Retrieve all LeftIds associated with a given RightId.
+  -- | Retrieve all LeftIds associated with a given `RightId`.
   getAllRefIdsR :: CacheManyToMany a b -> RightId -> IO [LeftId]
   getAllRefIdsR (CacheManyToMany _ _ r) ri =
     readRefM2MR r >>= \m ->
@@ -160,7 +160,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
         Nothing -> throw $ IdNotFound ri
         Just e -> return e
 
-  -- | Retrieve all RightIds associated with a given LeftName.
+  -- | Retrieve all RightIds associated with a given `LeftName`.
   getAllRefIdsByNameL :: CacheManyToMany a b -> LeftName -> IO [RightId]
   getAllRefIdsByNameL c@(CacheManyToMany ca _ _) ln =
     Cache.getIdByName ca ln >>= getAllRefIdsL c
@@ -170,12 +170,12 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
   getAllRefIdsByNameR c@(CacheManyToMany _ cb _) rn =
     Cache.getIdByName cb rn >>= getAllRefIdsR c
 
-  -- | Retrieve all Right entities associated with a given LeftId.
+  -- | Retrieve all Right entities associated with a given `LeftId`.
   getAllRefL :: CacheManyToMany a b -> LeftId -> IO [b]
   getAllRefL c@(CacheManyToMany _ cb _) li =
     getAllRefIdsL c li >>= Cache.retrieveMany cb
 
-  -- | Retrieve all Left entities associated with a given RightId.
+  -- | Retrieve all Left entities associated with a given `RightId`.
   getAllRefR :: CacheManyToMany a b -> RightId -> IO [a]
   getAllRefR c@(CacheManyToMany ca _ _) ri =
     getAllRefIdsR c ri >>= Cache.retrieveMany ca
@@ -190,12 +190,12 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
   getAllRefByNameR c@(CacheManyToMany _ cb _) rn =
     Cache.getIdByName cb rn >>= getAllRefR c
 
-  -- | Retrieves multiple entities of type `b` associated with a given LeftId.
+  -- | Retrieves multiple entities of type `b` associated with a given `LeftId`.
   getManyRefL :: CacheManyToMany a b -> LeftId -> [RightId] -> IO [b]
   getManyRefL c@(CacheManyToMany _ cb _) li ris =
     getAllRefIdsL c li >>= Cache.retrieveMany cb . filter (`elem` ris)
 
-  -- | Retrieves multiple entities of type `a` associated with a given RightId.
+  -- | Retrieves multiple entities of type `a` associated with a given `RightId`.
   getManyRefR :: CacheManyToMany a b -> RightId -> [LeftId] -> IO [a]
   getManyRefR c@(CacheManyToMany ca _ _) ri lis =
     getAllRefIdsR c ri >>= Cache.retrieveMany ca . filter (`elem` lis)
@@ -296,7 +296,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
       a = Proxy @a
       b = Proxy @b
 
-  -- | Binds an existing LeftId entity to a RightId entity, if not already bound.
+  -- | Binds an existing `LeftId` entity to a `RightId` entity, if not already bound.
   bindRefL :: CacheManyToMany a b -> LeftId -> RightId -> IO Bool
   bindRefL c@(CacheManyToMany ca cb r) li ri = do
     c1 <- Cache.isIdInCache ca li
@@ -306,7 +306,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
       (True, True, False) -> modifyRefM2M_ r (insertRefIdL li ri) >> return True
       _ -> return False
 
-  -- | Binds an existing RightId entity to a LeftId entity, if not already bound.
+  -- | Binds an existing `RightId` entity to a `LeftId` entity, if not already bound.
   bindRefR :: CacheManyToMany a b -> RightId -> LeftId -> IO Bool
   bindRefR c@(CacheManyToMany ca cb r) ri li = do
     c1 <- Cache.isIdInCache cb ri
@@ -316,7 +316,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
       (True, True, False) -> modifyRefM2M_ r (insertRefIdR ri li) >> return True
       _ -> return False
 
-  -- | Unbinds an existing LeftId entity from a RightId entity, if not already bound.
+  -- | Unbinds an existing `LeftId` entity from a `RightId` entity, if not already bound.
   unbindRefL :: CacheManyToMany a b -> LeftId -> RightId -> IO Bool
   unbindRefL c@(CacheManyToMany ca cb r) li ri = do
     c1 <- Cache.isIdInCache ca li
@@ -326,7 +326,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
       (True, True, True) -> modifyRefM2M_ r (removeRefIdL li ri) >> return True
       _ -> return False
 
-  -- | Unbinds an existing RightId entity from a LeftId entity, if not already bound.
+  -- | Unbinds an existing `RightId` entity from a `LeftId` entity, if not already bound.
   unbindRefR :: CacheManyToMany a b -> RightId -> LeftId -> IO Bool
   unbindRefR c@(CacheManyToMany ca cb r) ri li = do
     c1 <- Cache.isIdInCache ca li
@@ -369,20 +369,21 @@ readRefM2MR r = readMVar r >>= return . r2l
 modifyRefM2M :: RefRelationM2M -> (RefRelationM2MData -> RefRelationM2MData) -> IO RefRelationM2MData
 modifyRefM2M r fn = modifyMVar r $ \d -> let newD = fn d in return (newD, newD)
 
--- | Modifies the many-to-many relationship data in a thread-safe manner without returning the result.
+-- | Modifies the many-to-many relationship data in a thread-safe manner without
+--   returning the result.
 modifyRefM2M_ :: RefRelationM2M -> (RefRelationM2MData -> RefRelationM2MData) -> IO ()
 modifyRefM2M_ r fn = modifyMVar_ r $ \d -> let newD = fn d in return newD
 
--- | Inserts a `RightId` into the list of associated IDs for a given `LeftId`
---   and updates the `RightId` with the associated `LeftId`.
+-- | Inserts a `RightId` into the list of associated IDs for a given `LeftId` and
+--   updates the `RightId` with the associated `LeftId`.
 insertRefIdL :: LeftId -> RightId -> RefRelationM2MData -> RefRelationM2MData
 insertRefIdL li ri (RefRelationM2MData ld rd) =
   let newLd = Map.insertWith (++) li [ri] ld
       newRd = Map.insertWith (++) ri [li] rd
    in RefRelationM2MData newLd newRd
 
--- | Inserts a `LeftId` into the list of associated IDs for a given `RightId`
---   and updates the `LeftId` with the associated `RightId`.
+-- | Inserts a `LeftId` into the list of associated IDs for a given `RightId` and
+--   updates the `LeftId` with the associated `RightId`.
 insertRefIdR :: RightId -> LeftId -> RefRelationM2MData -> RefRelationM2MData
 insertRefIdR ri li (RefRelationM2MData ld rd) =
   let newLd = Map.insertWith (++) li [ri] ld

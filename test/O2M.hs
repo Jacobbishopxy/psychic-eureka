@@ -101,29 +101,49 @@ instance O2M.OneToMany User Todo
 
 main :: IO ()
 main = do
+  -- initialize two stores
   userStore <- Cache.initialize
-  -- map1 <- Cache.getNameMap userStore
-  -- print map1
   todoStore <- Cache.initialize
-  -- map2 <- Cache.getNameMap todoStore
-  -- print map2
 
+  -- save a main entity
   u <- Cache.save userStore (UserInput "Jacob")
-
-  o2m <- O2M.construct userStore todoStore :: IO (O2M.CacheOneToMany User Todo)
-
   let userId = getId u
 
+  -- construct a `CacheOneToMany`
+  o2m <- O2M.construct userStore todoStore :: IO (O2M.CacheOneToMany User Todo)
+
+  -- save a ref entity associated to a main entity
   todo <- O2M.saveRef o2m userId (TodoInput "grocery" "buy milk")
-
-  refMap <- O2M.getRefMap o2m
-
-  putStrLn "refMap: "
-  print refMap
-
   let todoId = getId todo
 
-  manyRef <- O2M.getManyRef o2m userId [todoId]
+  -- check refMap
+  putStrLn "1. refMap:"
+  O2M.getRefMap o2m >>= print
 
-  putStrLn "manyRef: "
-  print manyRef
+  -- check `getManyRef` API
+  putStrLn "2. manyRef:"
+  O2M.getManyRef o2m userId [todoId] >>= print
+
+  -- check `unbind` API
+  putStrLn "3. unbindRef:"
+  O2M.unbindRef o2m userId todoId >>= print
+
+  -- check refMap after unbind
+  putStrLn "4. after unbind:"
+  O2M.getRefMap o2m >>= print
+
+  -- check `bind` API
+  putStrLn "5. bind:"
+  O2M.bindRef o2m userId todoId >>= print
+
+  -- check refMap after bind
+  putStrLn "6. after bind:"
+  O2M.getRefMap o2m >>= print
+
+  -- check `removeRefByName` API
+  putStrLn "7. removeRefByName:"
+  O2M.removeRefByName o2m "Jacob" "grocery" >>= print
+
+  -- check refMap after removeRefByName
+  putStrLn "8. after removeRefByName:"
+  O2M.getRefMap o2m >>= print
