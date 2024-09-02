@@ -20,9 +20,7 @@ import PsychicEureka.Entity (Entity (..), NameEntity (getName))
 
 ----------------------------------------------------------------------------------------------------
 
-data UserInput = UserInput
-  { _user_name :: String
-  }
+newtype UserInput = UserInput {_user_name :: String}
   deriving (Generic, FromJSON, ToJSON)
 
 data User = User

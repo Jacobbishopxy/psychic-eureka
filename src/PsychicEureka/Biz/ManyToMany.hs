@@ -55,7 +55,7 @@ data RefRelationM2MData = RefRelationM2MData
   { l2r :: RefM2ML,
     r2l :: RefM2MR
   }
-  deriving (Generic, ToJSON, FromJSON)
+  deriving (Generic, ToJSON, FromJSON, Show)
 
 -- | An MVar-wrapped data structure for thread-safe operations on many-to-many relationships.
 type RefRelationM2M = MVar RefRelationM2MData

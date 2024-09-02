@@ -134,6 +134,19 @@ test-suite test-o2m
     , psychic-eureka
     , time
 
+test-suite test-m2m
+  import:           warnings
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          M2M.hs
+  build-depends:
+    , aeson
+    , base            ^>=4.19.1.0
+    , bytestring
+    , psychic-eureka
+    , time
+
 test-suite test-clean
   import:           warnings
   default-language: Haskell2010
