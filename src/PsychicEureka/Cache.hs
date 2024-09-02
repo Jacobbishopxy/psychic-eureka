@@ -15,6 +15,7 @@ where
 
 import Control.Concurrent (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
 import Control.Exception (throw)
+import Data.Functor ((<&>))
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe)
 import qualified PsychicEureka.Entity as Entity
@@ -42,7 +43,7 @@ class (Entity.Entity a) => EntityCache a where
 
   -- get name id mapping
   getNameMap :: EntityCacheStore a -> IO (Map.Map String Id)
-  getNameMap mvar = readMVar mvar >>= return . fst
+  getNameMap mvar = readMVar mvar <&> fst
 
   -- is id in cache store
   isIdInCache :: EntityCacheStore a -> Id -> IO Bool
@@ -64,7 +65,7 @@ class (Entity.Entity a) => EntityCache a where
   -- (this function is used by the following functions;
   -- instead of throwing error, a `Maybe` type is more flexible
   getIdByNameM :: EntityCacheStore a -> String -> IO (Maybe Id)
-  getIdByNameM mvar n = readMVar mvar >>= return . Map.lookup n . fst
+  getIdByNameM mvar n = readMVar mvar <&> (Map.lookup n . fst)
 
   -- retrieve an `a` from a caching
   retrieve :: EntityCacheStore a -> Id -> IO a
@@ -76,7 +77,7 @@ class (Entity.Entity a) => EntityCache a where
 
   -- retrieve many
   retrieveMany :: EntityCacheStore a -> [Id] -> IO [a]
-  retrieveMany mvar is = (\(_, m) -> mapMaybe (`Map.lookup` m) is) <$> (readMVar mvar)
+  retrieveMany mvar is = (\(_, m) -> mapMaybe (`Map.lookup` m) is) <$> readMVar mvar
 
   -- retrieve many by name
   retrieveManyByName :: EntityCacheStore a -> [String] -> IO [a]
@@ -84,7 +85,7 @@ class (Entity.Entity a) => EntityCache a where
 
   -- retrieve all `a`s
   retrieveAll :: EntityCacheStore a -> IO [a]
-  retrieveAll mvar = readMVar mvar >>= return . (snd <$>) . Map.toList . snd
+  retrieveAll mvar = readMVar mvar <&> ((snd <$>) . Map.toList . snd)
 
   -- retrieve an `a` by name
   retrieveByName :: EntityCacheStore a -> String -> IO a

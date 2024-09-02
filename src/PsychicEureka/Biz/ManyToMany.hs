@@ -20,6 +20,7 @@ import Control.Concurrent (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
 import Control.Exception (throw)
 import Data.Aeson (FromJSON, ToJSON, encodeFile)
 import Data.Data (Proxy (..), typeRep)
+import Data.Functor ((<&>))
 import qualified Data.Map as Map
 import GHC.Generics (Generic)
 import qualified PsychicEureka.Cache as Cache
@@ -112,21 +113,21 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
 
   -- | Retrieve the map of `LeftId` to RightIds
   getRefMapL :: CacheManyToMany a b -> IO RefM2ML
-  getRefMapL (CacheManyToMany _ _ r) = readRefM2M r >>= return . l2r
+  getRefMapL (CacheManyToMany _ _ r) = readRefM2M r <&> l2r
 
   -- | Retrieve the map of RightId to LeftIds
   getRefMapR :: CacheManyToMany a b -> IO RefM2MR
-  getRefMapR (CacheManyToMany _ _ r) = readRefM2M r >>= return . r2l
+  getRefMapR (CacheManyToMany _ _ r) = readRefM2M r <&> r2l
 
   -- | Check if a `LeftId` exists in the relationship map.
   isIdInKeyL :: CacheManyToMany a b -> LeftId -> IO Bool
   isIdInKeyL (CacheManyToMany _ _ r) li =
-    readRefM2ML r >>= return . Map.member li
+    readRefM2ML r <&> Map.member li
 
   -- | Check if a `RightId` exists in the relationship map.
   isIdInKeyR :: CacheManyToMany a b -> RightId -> IO Bool
   isIdInKeyR (CacheManyToMany _ _ r) ri =
-    readRefM2MR r >>= return . Map.member ri
+    readRefM2MR r <&> Map.member ri
 
   -- | Check if a specific `RightId` is associated with a given `LeftId`.
   isIdInValueL :: CacheManyToMany a b -> LeftId -> RightId -> IO Bool
@@ -357,11 +358,11 @@ readRefM2M = readMVar
 
 -- | Reads the left-to-right mapping (`l2r`) from the many-to-many relationship data.
 readRefM2ML :: RefRelationM2M -> IO RefM2ML
-readRefM2ML r = readMVar r >>= return . l2r
+readRefM2ML r = readMVar r <&> l2r
 
 -- | Reads the right-to-left mapping (`r2l`) from the many-to-many relationship data.
 readRefM2MR :: RefRelationM2M -> IO RefM2MR
-readRefM2MR r = readMVar r >>= return . r2l
+readRefM2MR r = readMVar r <&> r2l
 
 -- | Modifies the many-to-many relationship data in a thread-safe manner.
 --   The provided function `fn` is applied to the current data, and the updated

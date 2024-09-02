@@ -20,6 +20,7 @@ import Control.Concurrent (MVar, modifyMVar, modifyMVar_, newMVar, readMVar)
 import Control.Exception (throw)
 import Data.Aeson (FromJSON, ToJSON, encodeFile)
 import Data.Data (Proxy (..), typeRep)
+import Data.Functor ((<&>))
 import qualified Data.Map as Map
 import GHC.Generics (Generic)
 import qualified PsychicEureka.Cache as Cache
@@ -111,11 +112,11 @@ class (Cache.EntityCache a, Cache.EntityCache b) => OneToMany a b where
   -- | Checks if a given main entity ID exists in the relationship.
   isIdInKey :: CacheOneToMany a b -> MainId -> IO Bool
   isIdInKey (CacheOneToMany _ _ r) mi =
-    readRefO2M r >>= return . Map.member mi
+    readRefO2M r <&> Map.member mi
 
   -- | Checks if a given reference entity ID exists in the cache.
   isIdInRef :: CacheOneToMany a b -> RefId -> IO Bool
-  isIdInRef (CacheOneToMany _ cb _) ri = Cache.isIdInCache cb ri
+  isIdInRef (CacheOneToMany _ cb _) = Cache.isIdInCache cb
 
   -- | Checks if a given reference entity ID exists under a specific main entity ID.
   isIdInValue :: CacheOneToMany a b -> MainId -> RefId -> IO Bool
@@ -241,7 +242,7 @@ defaultRefRelationO2MData m = do
 
 -- | Reads the `RefO2M` map from an `MVar`.
 readRefO2M :: RefRelationO2M -> IO RefO2M
-readRefO2M r = readMVar r >>= return . \(RefRelationO2MData d) -> d
+readRefO2M r = readMVar r <&> (\(RefRelationO2MData d) -> d)
 
 -- | Modifies the `RefRelationO2M` data using the provided function and returns the modified data.
 modifyRefO2M :: RefRelationO2M -> (RefRelationO2MData -> RefRelationO2MData) -> IO RefRelationO2MData

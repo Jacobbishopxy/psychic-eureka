@@ -3,6 +3,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Unused LANGUAGE pragma" #-}
 
 -- file: Schema.hs
 -- author: Jacob Xie

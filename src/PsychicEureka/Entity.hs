@@ -1,6 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -64,7 +63,7 @@ class (EntityConstraint a) => Entity a where
 
   -- | Method to get the full path to the file where an entity is stored, based on its ID.
   getPath :: Proxy a -> Id -> FilePath
-  getPath _ i = Util.getPath a (persistDir a) i
+  getPath _ = Util.getPath a (persistDir a)
     where
       a = Proxy @a
 

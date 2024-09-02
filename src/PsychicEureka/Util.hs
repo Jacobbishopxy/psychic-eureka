@@ -26,6 +26,7 @@ import Data.Aeson
 import Data.Aeson.Types
 import Data.ByteString (toStrict)
 import Data.Data (Typeable)
+import Data.Functor ((<&>))
 import Data.Maybe (fromJust, mapMaybe)
 import Data.Swagger
 import Data.Text (Text, pack)
@@ -125,7 +126,7 @@ mockUTCTime = UTCTime (fromGregorian 2024 7 15) 0
 
 -- | Get the current time as a formatted string (ISO 8601 format).
 getNowString :: IO String
-getNowString = getCurrentTime >>= return . formatTime defaultTimeLocale "%FT%T%QZ"
+getNowString = getCurrentTime <&> formatTime defaultTimeLocale "%FT%T%QZ"
 
 -- | Convert a comma-separated 'String' into a list of 'Id's.
 -- Invalid UUID strings will be ignored.
