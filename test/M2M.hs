@@ -63,6 +63,9 @@ instance Entity Author where
     t <- getCurrentTime
     return $ a {author_name = _author_name ai, author_modified_time = t}
 
+  -- override the default impl
+  persistDir _ = "./data/author/"
+
 instance NameEntity LiteratureInput where
   getName = _literature_name
 
@@ -82,8 +85,13 @@ instance Entity Literature where
     t <- getCurrentTime
     return $ a {literature_name = _literature_name ai, literature_modified_time = t}
 
+  -- override the default impl
+  persistDir _ = "./data/literature/"
+
 -- check this
-instance M2M.ManyToMany Author Literature
+instance M2M.ManyToMany Author Literature where
+  -- override the default impl
+  refRelationPersist _ _ = "./data/author_literature.json"
 
 ----------------------------------------------------------------------------------------------------
 -- Main
@@ -108,15 +116,31 @@ main = do
   l1 <- M2M.saveRefL m2m ai1 (LiteratureInput "The Great Wall")
   let li1 = getId l1
 
+  -- check refMap
+  putStrLn "1. refMap:"
   M2M.getRefMap m2m >>= print
 
+  -- check `getManyRefL` API
+  putStrLn "2. manyRefL:"
   M2M.getManyRefL m2m ai1 [li1] >>= print
 
+  -- check `saveRefL` API
+  putStrLn "3. saveRefL:"
   l2 <- M2M.saveRefL m2m ai2 (LiteratureInput "The Yellow River")
   let li2 = getId l2
 
+  -- check `bindRefL` API
+  putStrLn "4. bindRefL:"
   M2M.bindRefL m2m ai3 li2 >>= print
+
+  -- check refMap
+  putStrLn "5. refMap:"
+  M2M.getRefMap m2m >>= print
+
+  -- check `removeRefR` API
+  putStrLn "6. removeRefR:"
+  M2M.removeRefR m2m li2 ai2 >>= print
 
   M2M.getRefMap m2m >>= print
 
-  putStrLn "whatever"
+  putStrLn "done"

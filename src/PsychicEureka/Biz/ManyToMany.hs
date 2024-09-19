@@ -21,6 +21,7 @@ import Control.Exception (throw)
 import Data.Aeson (FromJSON, ToJSON, encodeFile)
 import Data.Data (Proxy (..), typeRep)
 import Data.Functor ((<&>))
+import qualified Data.List as List
 import qualified Data.Map as Map
 import GHC.Generics (Generic)
 import qualified PsychicEureka.Cache as Cache
@@ -275,7 +276,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
     isIdInKeyL c li >>= \case
       True -> do
         rb <- Cache.remove cb ri
-        res <- modifyRefM2M r $ removeRefIdL li ri
+        res <- modifyRefM2M r $ deleteRefIdL li
         saveRefM2M (refRelationPersist a b) res
         return rb
       False -> throw $ IdNotFound li
@@ -289,7 +290,7 @@ class (Cache.EntityCache a, Cache.EntityCache b) => ManyToMany a b where
     isIdInKeyR c ri >>= \case
       True -> do
         ra <- Cache.remove ca li
-        res <- modifyRefM2M r $ removeRefIdR ri li
+        res <- modifyRefM2M r $ deleteRefIdR ri
         saveRefM2M (refRelationPersist a b) res
         return ra
       False -> throw $ IdNotFound ri
@@ -403,6 +404,18 @@ removeRefIdL li ri (RefRelationM2MData ld rd) =
       newRd = Map.update (removeIdFromValue li) ri rd
    in RefRelationM2MData newLd newRd
 
+deleteRefIdL :: LeftId -> RefRelationM2MData -> RefRelationM2MData
+deleteRefIdL li (RefRelationM2MData ld rd) =
+  let newLd = Map.delete li ld
+      newRd = removeIdFromValues li rd
+   in RefRelationM2MData newLd newRd
+
+deleteRefIdR :: RightId -> RefRelationM2MData -> RefRelationM2MData
+deleteRefIdR ri (RefRelationM2MData ld rd) =
+  let newLd = removeIdFromValues ri ld
+      newRd = Map.delete ri rd
+   in RefRelationM2MData newLd newRd
+
 -- | Removes the association between a `RightId` and a `LeftId` from the
 --   right-to-left map and updates the left-to-right map accordingly.
 removeRefIdR :: RightId -> LeftId -> RefRelationM2MData -> RefRelationM2MData
@@ -418,3 +431,6 @@ removeIdFromValue :: Id -> [Id] -> Maybe [Id]
 removeIdFromValue i ris =
   let newIds = filter (/= i) ris
    in if null newIds then Nothing else Just newIds
+
+removeIdFromValues :: Id -> Map.Map Id [Id] -> Map.Map Id [Id]
+removeIdFromValues i = Map.map (List.delete i)
